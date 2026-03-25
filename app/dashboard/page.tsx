@@ -4,6 +4,7 @@ import ProgressChart from "@/components/dashboard/ProgressChart";
 import History from "@/components/dashboard/History";
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
+import DashboardClient from "./DashboardClient";
 
 export default async function Dashboard() {
   const session = await getServerSession();
@@ -11,6 +12,7 @@ export default async function Dashboard() {
   if (!session) {
     redirect("/login");
   }
+
   return (
     <main className="pt-20 px-6 pb-16">
       <Navbar />
@@ -20,7 +22,9 @@ export default async function Dashboard() {
         {/* Heading */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-bold">Welcome back {session.user?.name || "User"}👋</h1>
+            <h1 className="text-3xl font-bold">
+              Welcome back {session.user?.name || "User"} 👋
+            </h1>
             <p className="text-muted-foreground">
               Ready to crack your next interview?
             </p>
@@ -30,20 +34,8 @@ export default async function Dashboard() {
         {/* Interview Types */}
         <InterviewTypes />
 
-        {/* Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          
-          {/* Graph */}
-          <div className="lg:col-span-2">
-            <ProgressChart />
-          </div>
-
-          {/* History */}
-          <div>
-            <History />
-          </div>
-
-        </div>
+        {/* Client side data section */}
+        <DashboardClient />
       </div>
     </main>
   );

@@ -93,10 +93,10 @@ export default function InterviewPanel({ type }: { type: string }) {
     if (step === TOTAL_QUESTIONS) {
       // go to result page
       router.push(
-        `/interview/result?data=${encodeURIComponent(
-          JSON.stringify(sessionData)
-        )}`
-      );
+  `/interview/result?type=${type}&data=${encodeURIComponent(
+    JSON.stringify(sessionData)
+  )}`
+);
       return;
     }
 
