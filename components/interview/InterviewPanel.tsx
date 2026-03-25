@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
 
 type ResultType = {
   score: number;
@@ -9,12 +10,25 @@ type ResultType = {
   feedback: string;
 };
 
+type QA = {
+  question: string;
+  userAnswer: string;
+  result: ResultType;
+};
+
 export default function InterviewPanel({ type }: { type: string }) {
+  const router = useRouter();
+
+  const TOTAL_QUESTIONS = 5;
+
   const [question, setQuestion] = useState("");
   const [userAnswer, setUserAnswer] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [result, setResult] = useState<ResultType | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const [step, setStep] = useState(1);
+  const [sessionData, setSessionData] = useState<QA[]>([]);
 
   useEffect(() => {
     generateQuestion();
@@ -55,8 +69,19 @@ export default function InterviewPanel({ type }: { type: string }) {
       });
 
       const data = await res.json();
+
       setResult(data.result);
       setSubmitted(true);
+
+      // store result
+      setSessionData((prev) => [
+        ...prev,
+        {
+          question,
+          userAnswer,
+          result: data.result,
+        },
+      ]);
     } catch (err) {
       console.error(err);
     } finally {
@@ -65,24 +90,41 @@ export default function InterviewPanel({ type }: { type: string }) {
   };
 
   const handleNext = async () => {
+    if (step === TOTAL_QUESTIONS) {
+      // go to result page
+      router.push(
+        `/interview/result?data=${encodeURIComponent(
+          JSON.stringify(sessionData)
+        )}`
+      );
+      return;
+    }
+
+    setStep((prev) => prev + 1);
     setUserAnswer("");
     setSubmitted(false);
     setResult(null);
+
     await generateQuestion();
   };
 
   return (
     <div className="glass border border-border rounded-2xl p-6 md:p-8 space-y-6">
       
+      {/* Progress */}
       <div className="flex justify-between text-sm text-muted-foreground">
-        <span>{type} Interview</span>
+        <span>
+          {type} Interview ({step}/{TOTAL_QUESTIONS})
+        </span>
         <span>{result ? `${result.score}/10` : "--"}</span>
       </div>
 
+      {/* Question */}
       <h2 className="text-xl md:text-2xl font-semibold">
         {loading ? "Generating question..." : question}
       </h2>
 
+      {/* Answer */}
       <textarea
         value={userAnswer}
         onChange={(e) => setUserAnswer(e.target.value)}
@@ -90,6 +132,7 @@ export default function InterviewPanel({ type }: { type: string }) {
         className="w-full h-32 p-4 rounded-xl bg-muted border border-border focus:outline-none focus:ring-2 focus:ring-primary resize-none"
       />
 
+      {/* Submit */}
       {!submitted && (
         <Button
           onClick={evaluateAnswer}
@@ -100,6 +143,7 @@ export default function InterviewPanel({ type }: { type: string }) {
         </Button>
       )}
 
+      {/* Result */}
       {submitted && result && (
         <div className="space-y-4">
           
@@ -126,17 +170,11 @@ export default function InterviewPanel({ type }: { type: string }) {
               onClick={handleNext}
               className="bg-gradient-to-r from-purple-600 to-cyan-500 text-white"
             >
-              Next Question
+              {step === TOTAL_QUESTIONS ? "Finish" : "Next Question"}
             </Button>
           </div>
         </div>
       )}
-
-      <div className="flex justify-end">
-        <Button variant="ghost" className="text-red-400 hover:text-red-500">
-          Exit Interview
-        </Button>
-      </div>
     </div>
   );
 }

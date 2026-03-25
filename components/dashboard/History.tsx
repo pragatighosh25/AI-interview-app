@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 type Interview = {
   id: string;
   score: number;
+  type: string;
   createdAt: string;
 };
 
@@ -28,29 +29,58 @@ export default function History() {
     fetchHistory();
   }, []);
 
+  const getScoreColor = (score: number) => {
+    if (score >= 8) return "text-green-500";
+    if (score >= 6) return "text-yellow-500";
+    return "text-red-500";
+  };
+
+  const formatDate = (date: string) => {
+    return new Date(date).toLocaleDateString("en-IN", {
+      day: "numeric",
+      month: "short",
+    });
+  };
+
   return (
-    <div className="glass border border-border rounded-2xl p-6 h-[300px]">
-      <h3 className="text-lg font-semibold mb-4">History</h3>
+    <div className="glass border border-border rounded-2xl p-6 h-[320px] flex flex-col">
+      <h3 className="text-lg font-semibold mb-4">
+        Interview History
+      </h3>
 
       {loading ? (
-        <p className="text-sm text-muted-foreground">Loading...</p>
+        <p className="text-sm text-muted-foreground">
+          Loading...
+        </p>
       ) : data.length === 0 ? (
         <p className="text-sm text-muted-foreground">
           No interviews yet
         </p>
       ) : (
-        <div className="space-y-4 overflow-y-auto h-[220px] pr-1">
+        <div className="space-y-4 overflow-y-auto flex-1 pr-1">
           {data.map((item) => (
             <div
               key={item.id}
-              className="flex justify-between items-center border-b border-border pb-2"
+              className="flex justify-between items-center border-b border-border pb-3 hover:opacity-80 transition"
             >
-              <span className="text-sm">
-                {new Date(item.createdAt).toLocaleDateString()}
-              </span>
+              {/* Left */}
+              <div className="flex flex-col">
+                <span className="text-sm font-medium">
+                  {item.type}
+                </span>
 
-              <span className="text-sm text-muted-foreground">
-                {item.score}/10
+                <span className="text-xs text-muted-foreground">
+                  {formatDate(item.createdAt)}
+                </span>
+              </div>
+
+              {/* Right */}
+              <span
+                className={`text-sm font-semibold ${getScoreColor(
+                  item.score
+                )}`}
+              >
+                {item.score.toFixed(1)}/10
               </span>
             </div>
           ))}

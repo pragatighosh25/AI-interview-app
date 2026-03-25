@@ -7,38 +7,32 @@ export async function POST(req: Request) {
     const session = await getServerSession();
 
     if (!session?.user?.email) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { score } = await req.json();
+    const { score, type, data } = await req.json();
 
     const user = await prisma.user.findUnique({
       where: { email: session.user.email },
     });
 
     if (!user) {
-      return NextResponse.json(
-        { error: "User not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
     await prisma.interview.create({
       data: {
-        score,
         userId: user.id,
+        type,
+        score,
+        data, 
       },
     });
 
     return NextResponse.json({ success: true });
 
   } catch (err) {
-    return NextResponse.json(
-      { error: "Something went wrong" },
-      { status: 500 }
-    );
+    console.error(err);
+    return NextResponse.json({ error: "Failed to save" }, { status: 500 });
   }
 }

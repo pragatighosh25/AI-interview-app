@@ -1,4 +1,10 @@
 import { NextResponse } from "next/server";
+import OpenAI from "openai";
+
+const client = new OpenAI({
+  apiKey: process.env.GROQ_API_KEY,
+  baseURL: "https://api.groq.com/openai/v1", // 🔥 important
+});
 
 export async function POST(req: Request) {
   try {
@@ -6,63 +12,34 @@ export async function POST(req: Request) {
 
     // 🔥 GENERATE QUESTION
     if (type === "generate") {
-      const res = await fetch("https://api.x.ai/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${process.env.GROK_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "grok-3", // ✅ FIXED
-          messages: [
-            {
-              role: "system",
-              content:
-                "You are an expert interviewer. Ask one concise technical question.",
-            },
-            {
-              role: "user",
-              content: `Generate one ${role} interview question.`,
-            },
-          ],
-        }),
+      const completion = await client.chat.completions.create({
+        model: "llama-3.3-70b-versatile", // free + fast
+        messages: [
+          {
+            role: "system",
+            content:
+              "You are an expert interviewer. Ask one concise technical question.",
+          },
+          {
+            role: "user",
+            content: `Generate one ${role} interview question.`,
+          },
+        ],
       });
 
-      const data = await res.json();
-      console.log("GEN RESPONSE:", data); // 👈 DEBUG
-
-      if (!res.ok) {
-        return NextResponse.json(
-          { error: data },
-          { status: 500 }
-        );
-      }
-
-      const questionText =
-        data?.choices?.[0]?.message?.content ||
-        "Failed to generate question.";
-
       return NextResponse.json({
-        question: questionText,
+        question: completion.choices[0].message.content,
       });
     }
 
     // 🔥 EVALUATE ANSWER
     if (type === "evaluate") {
-      const res = await fetch("https://api.x.ai/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${process.env.GROK_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "grok-3", // ✅ FIXED
-          messages: [
-            {
-              role: "system",
-              content: `
-You are an interviewer.
-
+      const completion = await client.chat.completions.create({
+        model: "llama-3.3-70b-versatile",
+        messages: [
+          {
+            role: "system",
+            content: `
 Return ONLY JSON:
 {
   "score": number,
@@ -70,34 +47,22 @@ Return ONLY JSON:
   "feedback": "string"
 }
 `,
-            },
-            {
-              role: "user",
-              content: `Question: ${question}\nAnswer: ${answer}`,
-            },
-          ],
-        }),
+          },
+          {
+            role: "user",
+            content: `Question: ${question}\nAnswer: ${answer}`,
+          },
+        ],
       });
 
-      const data = await res.json();
-      console.log("EVAL RESPONSE:", data); // 👈 DEBUG
-
-      if (!res.ok) {
-        return NextResponse.json(
-          { error: data },
-          { status: 500 }
-        );
-      }
-
-      const raw = data?.choices?.[0]?.message?.content || "";
+      const raw = completion.choices[0].message.content || "";
 
       let parsed;
 
       try {
         const jsonMatch = raw.match(/\{[\s\S]*\}/);
         parsed = JSON.parse(jsonMatch?.[0] || "");
-      } catch (err) {
-        console.error("PARSE ERROR:", raw);
+      } catch {
         parsed = {
           score: 5,
           expected: "Parsing failed",
@@ -110,10 +75,8 @@ Return ONLY JSON:
       });
     }
 
-    return NextResponse.json({ error: "Invalid type" }, { status: 400 });
-
   } catch (err) {
-    console.error("AI ROUTE ERROR:", err); // 👈 SUPER IMPORTANT
+    console.error(err);
     return NextResponse.json(
       { error: "AI failed" },
       { status: 500 }

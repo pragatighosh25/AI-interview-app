@@ -1,26 +1,27 @@
 "use client";
 
+import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, XCircle, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef } from "react";
 
-const results = [
-  {
-    question: "What is Virtual DOM?",
-    score: 8,
-  },
-  {
-    question: "Explain useEffect.",
-    score: 7,
-  },
-];
-
 export default function ResultsPanel() {
-  const hasSaved = useRef(false);
+  const params = useSearchParams();
+  const raw = params.get("data");
+  const type = params.get("type") || "General";
 
-  const total = results.reduce((acc, r) => acc + r.score, 0);
-  const avg = Number((total / results.length).toFixed(1));
+  const data = raw ? JSON.parse(decodeURIComponent(raw)) : [];
+
+  const total = data.reduce(
+    (acc: number, item: any) => acc + item.result.score,
+    0
+  );
+
+  const avg = data.length
+    ? Number((total / data.length).toFixed(1))
+    : 0;
+
+  const saved = useRef(false);
 
   const getRemark = () => {
     if (avg >= 8) return "Excellent 🚀 You're interview ready!";
@@ -28,32 +29,47 @@ export default function ResultsPanel() {
     return "Needs Improvement 📚 Practice more!";
   };
 
-  const saveResult = async () => {
+  const getScoreColor = (score: number) => {
+    if (score >= 8) return "text-green-500";
+    if (score >= 6) return "text-yellow-500";
+    return "text-red-500";
+  };
+
+  // 🔥 SAVE SESSION TO DB (only once)
+  const saveSession = async () => {
     try {
       await fetch("/api/interview", {
         method: "POST",
-        body: JSON.stringify({ score: avg }),
+        body: JSON.stringify({
+          score: avg,
+          type,
+          data,
+        }),
       });
     } catch (err) {
-      console.error("Failed to save result", err);
+      console.error("SAVE FAILED:", err);
     }
   };
 
   useEffect(() => {
-    if (!hasSaved.current) {
-      saveResult();
-      hasSaved.current = true;
+    if (!saved.current && data.length) {
+      saveSession();
+      saved.current = true;
     }
   }, []);
 
   return (
     <div className="space-y-8">
       
-      {/* Top Summary */}
+      {/* Summary */}
       <div className="glass border border-border rounded-2xl p-8 text-center">
-        <h1 className="text-3xl font-bold mb-4">
-          Your Result
+        <h1 className="text-3xl font-bold mb-2">
+          Final Result
         </h1>
+
+        <p className="text-sm text-muted-foreground mb-4">
+          {type} Interview
+        </p>
 
         <p className="text-5xl font-bold gradient-text mb-4">
           {avg} / 10
@@ -63,14 +79,14 @@ export default function ResultsPanel() {
           {getRemark()}
         </p>
 
-        <div className="flex flex-col sm:flex-row justify-center gap-4">
+        <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <Link href="/dashboard">
-            <Button variant="outline">Go to Dashboard</Button>
+            <Button variant="outline">Dashboard</Button>
           </Link>
 
-          <Link href="/interview">
-            <Button className="btn-glow bg-gradient-to-r from-purple-600 to-cyan-500 text-white flex items-center gap-2">
-              Retry Interview <ArrowRight className="w-4 h-4" />
+          <Link href={`/interview?type=${type}`}>
+            <Button className="btn-glow bg-gradient-to-r from-purple-600 to-cyan-500 text-white">
+              Retry
             </Button>
           </Link>
         </div>
@@ -82,25 +98,27 @@ export default function ResultsPanel() {
           Breakdown
         </h2>
 
-        {results.map((item, i) => (
+        {data.map((item: any, i: number) => (
           <div
             key={i}
-            className="flex items-center justify-between border-b border-border pb-3"
+            className="flex justify-between items-start gap-4 border-b border-border pb-4"
           >
-            <div className="flex items-center gap-3">
-              {item.score >= 7 ? (
-                <CheckCircle2 className="text-green-500 w-5 h-5" />
-              ) : (
-                <XCircle className="text-red-500 w-5 h-5" />
-              )}
+            <div>
+              <p className="font-medium mb-1">
+                {i + 1}. {item.question}
+              </p>
 
-              <p className="text-sm md:text-base">
-                {item.question}
+              <p className="text-sm text-muted-foreground">
+                {item.result.feedback}
               </p>
             </div>
 
-            <span className="text-sm font-medium text-muted-foreground">
-              {item.score}/10
+            <span
+              className={`text-sm font-semibold ${getScoreColor(
+                item.result.score
+              )}`}
+            >
+              {item.result.score}/10
             </span>
           </div>
         ))}
