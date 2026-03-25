@@ -1,6 +1,7 @@
 "use client";
 
 import { Code, Database, BarChart3, Palette, Server } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 const types = [
   { name: "Frontend", icon: Code },
@@ -11,6 +12,8 @@ const types = [
 ];
 
 export default function InterviewTypes() {
+  const router = useRouter();
+
   return (
     <div>
       <h2 className="text-xl font-semibold mb-4">Choose Interview Type</h2>
@@ -22,6 +25,7 @@ export default function InterviewTypes() {
           return (
             <div
               key={i}
+              onClick={() => router.push(`/interview?type=${type.name}`)}
               className="glass card-glow border border-border rounded-2xl p-5 flex flex-col items-center justify-center gap-3 cursor-pointer"
             >
               <div className="p-3 rounded-xl bg-gradient-to-r from-purple-600 to-cyan-500">

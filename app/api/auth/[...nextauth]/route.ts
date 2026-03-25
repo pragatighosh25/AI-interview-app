@@ -9,7 +9,7 @@ const handler = NextAuth({
       name: "Credentials",
       credentials: {},
 
-      async authorize(credentials: any) {
+    async authorize(credentials: any) {
   const user = await prisma.user.findUnique({
     where: { email: credentials.email },
   });

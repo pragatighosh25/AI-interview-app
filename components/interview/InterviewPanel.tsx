@@ -1,59 +1,88 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 
-const questions = [
-  {
-    question: "What is the Virtual DOM in React?",
-    answer:
-      "The Virtual DOM is a lightweight representation of the real DOM used to optimize UI updates.",
-  },
-  {
-    question: "Explain useEffect hook.",
-    answer:
-      "useEffect is used to perform side effects in functional components like data fetching or subscriptions.",
-  },
-];
+type ResultType = {
+  score: number;
+  expected: string;
+  feedback: string;
+};
 
-export default function InterviewPanel() {
-  const [index, setIndex] = useState(0);
+export default function InterviewPanel({ type }: { type: string }) {
+  const [question, setQuestion] = useState("");
   const [userAnswer, setUserAnswer] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [result, setResult] = useState<ResultType | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  const current = questions[index];
+  useEffect(() => {
+    generateQuestion();
+  }, [type]);
 
-  const handleSubmit = () => {
-    setSubmitted(true);
+  const generateQuestion = async () => {
+    try {
+      setLoading(true);
+
+      const res = await fetch("/api/ai", {
+        method: "POST",
+        body: JSON.stringify({
+          type: "generate",
+          role: type,
+        }),
+      });
+
+      const data = await res.json();
+      setQuestion(data.question);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleNext = () => {
-    setIndex((prev) => prev + 1);
-    setUserAnswer("");
-    setSubmitted(false);
+  const evaluateAnswer = async () => {
+    try {
+      setLoading(true);
+
+      const res = await fetch("/api/ai", {
+        method: "POST",
+        body: JSON.stringify({
+          type: "evaluate",
+          question,
+          answer: userAnswer,
+        }),
+      });
+
+      const data = await res.json();
+      setResult(data.result);
+      setSubmitted(true);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handlePrev = () => {
-    setIndex((prev) => prev - 1);
+  const handleNext = async () => {
     setUserAnswer("");
     setSubmitted(false);
+    setResult(null);
+    await generateQuestion();
   };
 
   return (
     <div className="glass border border-border rounded-2xl p-6 md:p-8 space-y-6">
       
-      {/* Progress */}
       <div className="flex justify-between text-sm text-muted-foreground">
-        <span>Question {index + 1} / {questions.length}</span>
-        <span>Score: {submitted ? "8/10" : "--"}</span>
+        <span>{type} Interview</span>
+        <span>{result ? `${result.score}/10` : "--"}</span>
       </div>
 
-      {/* Question */}
       <h2 className="text-xl md:text-2xl font-semibold">
-        {current.question}
+        {loading ? "Generating question..." : question}
       </h2>
 
-      {/* Answer Box */}
       <textarea
         value={userAnswer}
         onChange={(e) => setUserAnswer(e.target.value)}
@@ -61,54 +90,48 @@ export default function InterviewPanel() {
         className="w-full h-32 p-4 rounded-xl bg-muted border border-border focus:outline-none focus:ring-2 focus:ring-primary resize-none"
       />
 
-      {/* Submit */}
       {!submitted && (
         <Button
-          onClick={handleSubmit}
+          onClick={evaluateAnswer}
+          disabled={!userAnswer.trim() || loading}
           className="btn-glow bg-gradient-to-r from-purple-600 to-cyan-500 text-white"
         >
-          Submit Answer
+          {loading ? "Evaluating..." : "Submit Answer"}
         </Button>
       )}
 
-      {/* Result */}
-      {submitted && (
+      {submitted && result && (
         <div className="space-y-4">
           
           <div className="p-4 rounded-xl bg-muted border border-border">
             <p className="text-sm text-muted-foreground mb-2">
               Expected Answer
             </p>
-            <p>{current.answer}</p>
+            <p>{result.expected}</p>
+          </div>
+
+          <div className="p-4 rounded-xl bg-muted border border-border">
+            <p className="text-sm text-muted-foreground mb-2">
+              Feedback
+            </p>
+            <p>{result.feedback}</p>
           </div>
 
           <div className="flex justify-between items-center">
             <span className="text-lg font-semibold">
-              Score: 8 / 10
+              Score: {result.score} / 10
             </span>
 
-            <div className="flex gap-3">
-              <Button
-                variant="outline"
-                onClick={handlePrev}
-                disabled={index === 0}
-              >
-                Prev
-              </Button>
-
-              <Button
-                onClick={handleNext}
-                disabled={index === questions.length - 1}
-                className="bg-gradient-to-r from-purple-600 to-cyan-500 text-white"
-              >
-                Next
-              </Button>
-            </div>
+            <Button
+              onClick={handleNext}
+              className="bg-gradient-to-r from-purple-600 to-cyan-500 text-white"
+            >
+              Next Question
+            </Button>
           </div>
         </div>
       )}
 
-      {/* Exit */}
       <div className="flex justify-end">
         <Button variant="ghost" className="text-red-400 hover:text-red-500">
           Exit Interview

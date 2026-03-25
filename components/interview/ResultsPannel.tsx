@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, XCircle, ArrowRight } from "lucide-react";
 import Link from "next/link";
+import { useEffect, useRef } from "react";
 
 const results = [
   {
@@ -16,6 +17,8 @@ const results = [
 ];
 
 export default function ResultsPanel() {
+  const hasSaved = useRef(false);
+
   const total = results.reduce((acc, r) => acc + r.score, 0);
   const avg = Number((total / results.length).toFixed(1));
 
@@ -24,6 +27,24 @@ export default function ResultsPanel() {
     if (avg >= 6) return "Good 👍 Keep refining your answers.";
     return "Needs Improvement 📚 Practice more!";
   };
+
+  const saveResult = async () => {
+    try {
+      await fetch("/api/interview", {
+        method: "POST",
+        body: JSON.stringify({ score: avg }),
+      });
+    } catch (err) {
+      console.error("Failed to save result", err);
+    }
+  };
+
+  useEffect(() => {
+    if (!hasSaved.current) {
+      saveResult();
+      hasSaved.current = true;
+    }
+  }, []);
 
   return (
     <div className="space-y-8">
