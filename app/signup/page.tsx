@@ -10,22 +10,46 @@ export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
+  const [loading, setLoading] = useState(false); // ✅ NEW
+
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const res = await fetch("/api/signup", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ name, email, password }),
-    });
+    try {
+      setLoading(true); // ✅ start loading
 
-    if (res.ok) {
+      const res = await fetch("/api/signup", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ name, email, password }),
+      });
+
+      // ✅ handle server errors properly
+      if (!res.ok) {
+        let message = "Something went wrong";
+
+        try {
+          const data = await res.json();
+          message = data.error || message;
+        } catch {
+          // if JSON parsing fails
+        }
+
+        throw new Error(message);
+      }
+
+      // ✅ success
+      toast.success("Account created 🎉");
+
       window.location.href = "/login";
-    } else {
-      const data = await res.json();
-      toast.error(data.error || "Something went wrong");
+
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || "Signup failed");
+    } finally {
+      setLoading(false); // ✅ always stop loading
     }
   };
 
@@ -50,7 +74,8 @@ export default function SignupPage() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
-              className="w-full p-3 rounded-xl bg-muted border border-border focus:ring-2 focus:ring-primary outline-none"
+              disabled={loading} // ✅ prevent edits during submit
+              className="w-full p-3 rounded-xl bg-muted border border-border focus:ring-2 focus:ring-primary outline-none disabled:opacity-50"
             />
 
             <input
@@ -59,7 +84,8 @@ export default function SignupPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full p-3 rounded-xl bg-muted border border-border focus:ring-2 focus:ring-primary outline-none"
+              disabled={loading}
+              className="w-full p-3 rounded-xl bg-muted border border-border focus:ring-2 focus:ring-primary outline-none disabled:opacity-50"
             />
 
             <input
@@ -68,14 +94,16 @@ export default function SignupPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full p-3 rounded-xl bg-muted border border-border focus:ring-2 focus:ring-primary outline-none"
+              disabled={loading}
+              className="w-full p-3 rounded-xl bg-muted border border-border focus:ring-2 focus:ring-primary outline-none disabled:opacity-50"
             />
 
             <Button
               type="submit"
-              className="w-full btn-glow bg-gradient-to-r from-purple-600 to-cyan-500 text-white"
+              disabled={loading} // ✅ prevent spam click
+              className="w-full btn-glow bg-gradient-to-r from-purple-600 to-cyan-500 text-white disabled:opacity-50"
             >
-              Sign Up
+              {loading ? "Creating account..." : "Sign Up"} {/* ✅ dynamic text */}
             </Button>
           </form>
 
@@ -126,10 +154,7 @@ export default function SignupPage() {
               {/* Scores */}
               <div className="space-y-2">
                 {["Frontend", "Backend", "Data"].map((item, i) => (
-                  <div
-                    key={i}
-                    className="flex justify-between text-sm"
-                  >
+                  <div key={i} className="flex justify-between text-sm">
                     <span>{item}</span>
                     <span className="text-muted-foreground">
                       {7 + i}/10

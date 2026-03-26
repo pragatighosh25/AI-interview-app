@@ -12,29 +12,39 @@ type Interview = {
 export default function History() {
   const [data, setData] = useState<Interview[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(""); // ✅ NEW
+
+  const fetchHistory = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const res = await fetch("/api/history");
+
+      let json = null;
+
+      // ✅ safe JSON parsing (VERY IMPORTANT)
+      try {
+        json = await res.json();
+      } catch {
+        throw new Error("Invalid server response");
+      }
+
+      if (!res.ok) {
+        throw new Error(json?.error || "Failed to fetch history");
+      }
+
+      setData(Array.isArray(json) ? json : []);
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || "Something went wrong");
+      setData([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchHistory = async () => {
-      try {
-        const res = await fetch("/api/history");
-        const json = await res.json();
-
-        // ✅ Safe handling
-        if (!res.ok) {
-          console.error(json.error);
-          setData([]);
-          return;
-        }
-
-        setData(Array.isArray(json) ? json : []);
-      } catch (err) {
-        console.error(err);
-        setData([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchHistory();
   }, []);
 
@@ -61,10 +71,25 @@ export default function History() {
         <p className="text-sm text-muted-foreground">
           Loading...
         </p>
+
+      ) : error ? (
+        <div className="text-sm text-red-500 space-y-2">
+          <p>{error}</p>
+
+          {/* ✅ retry button */}
+          <button
+            onClick={fetchHistory}
+            className="underline text-xs"
+          >
+            Retry
+          </button>
+        </div>
+
       ) : data.length === 0 ? (
         <p className="text-sm text-muted-foreground">
           No interviews yet
         </p>
+
       ) : (
         <div className="space-y-4 overflow-y-auto custom-scroll flex-1 pr-1">
           {data.map((item) => (

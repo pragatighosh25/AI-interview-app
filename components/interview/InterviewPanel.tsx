@@ -43,6 +43,7 @@ export default function InterviewPanel({
   const [submitted, setSubmitted] = useState(false);
   const [result, setResult] = useState<ResultType | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(""); // ✅ NEW
 
   const [step, setStep] = useState(1);
   const [sessionData, setSessionData] = useState<QA[]>([]);
@@ -53,9 +54,11 @@ export default function InterviewPanel({
     generateQuestion();
   }, [type]);
 
+  // ✅ GENERATE QUESTION (FIXED)
   const generateQuestion = async () => {
     try {
       setLoading(true);
+      setError("");
 
       const res = await fetch("/api/ai", {
         method: "POST",
@@ -66,18 +69,37 @@ export default function InterviewPanel({
         }),
       });
 
-      const data = await res.json();
+      let data;
+      try {
+        data = await res.json();
+      } catch {
+        throw new Error("Invalid server response");
+      }
+
+      if (!res.ok) {
+        throw new Error(data?.error || "Failed to generate question");
+      }
+
+      if (!data?.question) {
+        throw new Error("No question received");
+      }
+
       setQuestion(data.question);
-    } catch (err) {
+
+    } catch (err: any) {
       console.error(err);
+      setError(err.message || "Something went wrong");
+      setQuestion("");
     } finally {
       setLoading(false);
     }
   };
 
+  // ✅ EVALUATE ANSWER (FIXED)
   const evaluateAnswer = async () => {
     try {
       setLoading(true);
+      setError("");
 
       const res = await fetch("/api/ai", {
         method: "POST",
@@ -88,7 +110,20 @@ export default function InterviewPanel({
         }),
       });
 
-      const data = await res.json();
+      let data;
+      try {
+        data = await res.json();
+      } catch {
+        throw new Error("Invalid server response");
+      }
+
+      if (!res.ok) {
+        throw new Error(data?.error || "Evaluation failed");
+      }
+
+      if (!data?.result) {
+        throw new Error("Invalid evaluation result");
+      }
 
       setResult(data.result);
       setSubmitted(true);
@@ -101,8 +136,10 @@ export default function InterviewPanel({
           result: data.result,
         },
       ]);
-    } catch (err) {
+
+    } catch (err: any) {
       console.error(err);
+      setError(err.message || "Something went wrong");
     } finally {
       setLoading(false);
     }
@@ -148,9 +185,19 @@ export default function InterviewPanel({
         <span>{result ? `${result.score}/10` : "--"}</span>
       </div>
 
+      {/* ❌ ERROR UI (NEW) */}
+      {error && (
+        <div className="text-red-500 text-sm flex justify-between items-center">
+          <span>{error}</span>
+          <button onClick={generateQuestion} className="underline text-xs">
+            Retry
+          </button>
+        </div>
+      )}
+
       {/* Question */}
       <h2 className="text-xl md:text-2xl font-semibold">
-        {loading ? "Generating question..." : question}
+        {loading ? "Generating question..." : question || "No question available"}
       </h2>
 
       {/* Answer */}
@@ -158,7 +205,8 @@ export default function InterviewPanel({
         value={userAnswer}
         onChange={(e) => setUserAnswer(e.target.value)}
         placeholder="Type your answer here..."
-        className="w-full h-32 p-4 rounded-xl bg-muted border border-border focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+        disabled={loading} // ✅ prevent typing during loading
+        className="w-full h-32 p-4 rounded-xl bg-muted border border-border focus:outline-none focus:ring-2 focus:ring-primary resize-none disabled:opacity-50"
       />
 
       {/* Submit */}
@@ -166,7 +214,7 @@ export default function InterviewPanel({
         <Button
           onClick={evaluateAnswer}
           disabled={!userAnswer.trim() || loading}
-          className="btn-glow bg-gradient-to-r from-purple-600 to-cyan-500 text-white"
+          className="btn-glow bg-gradient-to-r from-purple-600 to-cyan-500 text-white disabled:opacity-50"
         >
           {loading ? "Evaluating..." : "Submit Answer"}
         </Button>

@@ -3,25 +3,40 @@
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export default function ResultsPanel() {
   const params = useSearchParams();
   const raw = params.get("data");
   const type = params.get("type") || "General";
 
-  const data = raw ? JSON.parse(decodeURIComponent(raw)) : [];
+  const [data, setData] = useState<any[]>([]);
+  const [saveError, setSaveError] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const saved = useRef(false);
+
+  // ✅ SAFE PARSE (VERY IMPORTANT)
+  useEffect(() => {
+    try {
+      if (raw) {
+        const parsed = JSON.parse(decodeURIComponent(raw));
+        setData(Array.isArray(parsed) ? parsed : []);
+      }
+    } catch (err) {
+      console.error("Invalid data:", err);
+      setData([]);
+    }
+  }, [raw]);
 
   const total = data.reduce(
-    (acc: number, item: any) => acc + item.result.score,
+    (acc: number, item: any) => acc + (item?.result?.score || 0),
     0
   );
 
   const avg = data.length
     ? Number((total / data.length).toFixed(1))
     : 0;
-
-  const saved = useRef(false);
 
   const getRemark = () => {
     if (avg >= 8) return "Excellent, You're interview ready!";
@@ -35,10 +50,13 @@ export default function ResultsPanel() {
     return "text-red-500";
   };
 
-  
+  // ✅ FIXED SAVE SESSION
   const saveSession = async () => {
     try {
-      await fetch("/api/interview", {
+      setSaving(true);
+      setSaveError("");
+
+      const res = await fetch("/api/interview", {
         method: "POST",
         body: JSON.stringify({
           score: avg,
@@ -46,8 +64,24 @@ export default function ResultsPanel() {
           data,
         }),
       });
-    } catch (err) {
+
+      let json = null;
+
+      try {
+        json = await res.json();
+      } catch {
+        throw new Error("Invalid server response");
+      }
+
+      if (!res.ok) {
+        throw new Error(json?.error || "Failed to save session");
+      }
+
+    } catch (err: any) {
       console.error("SAVE FAILED:", err);
+      setSaveError(err.message || "Failed to save results");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -56,7 +90,7 @@ export default function ResultsPanel() {
       saveSession();
       saved.current = true;
     }
-  }, []);
+  }, [data]);
 
   return (
     <div className="space-y-8">
@@ -79,6 +113,25 @@ export default function ResultsPanel() {
           {getRemark()}
         </p>
 
+        {/* ✅ SAVE STATUS */}
+        {saving && (
+          <p className="text-xs text-muted-foreground mb-2">
+            Saving results...
+          </p>
+        )}
+
+        {saveError && (
+          <div className="text-red-500 text-sm mb-2">
+            {saveError}{" "}
+            <button
+              onClick={saveSession}
+              className="underline text-xs"
+            >
+              Retry
+            </button>
+          </div>
+        )}
+
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <Link href="/dashboard">
             <Button variant="outline">Dashboard</Button>
@@ -98,30 +151,36 @@ export default function ResultsPanel() {
           Breakdown
         </h2>
 
-        {data.map((item: any, i: number) => (
-          <div
-            key={i}
-            className="flex justify-between items-start gap-4 border-b border-border pb-4"
-          >
-            <div>
-              <p className="font-medium mb-1">
-                {i + 1}. {item.question}
-              </p>
-
-              <p className="text-sm text-muted-foreground">
-                {item.result.feedback}
-              </p>
-            </div>
-
-            <span
-              className={`text-sm font-semibold ${getScoreColor(
-                item.result.score
-              )}`}
+        {data.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            No data available
+          </p>
+        ) : (
+          data.map((item: any, i: number) => (
+            <div
+              key={i}
+              className="flex justify-between items-start gap-4 border-b border-border pb-4"
             >
-              {item.result.score}/10
-            </span>
-          </div>
-        ))}
+              <div>
+                <p className="font-medium mb-1">
+                  {i + 1}. {item.question}
+                </p>
+
+                <p className="text-sm text-muted-foreground">
+                  {item?.result?.feedback || "No feedback"}
+                </p>
+              </div>
+
+              <span
+                className={`text-sm font-semibold ${getScoreColor(
+                  item?.result?.score || 0
+                )}`}
+              >
+                {item?.result?.score || 0}/10
+              </span>
+            </div>
+          ))
+        )}
       </div>
     </div>
   );
