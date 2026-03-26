@@ -25,6 +25,8 @@ type QA = {
   result: ResultType;
 };
 
+const STORAGE_KEY = "interview_state";
+
 export default function InterviewPanel({
   type,
   difficulty,
@@ -42,22 +44,71 @@ export default function InterviewPanel({
   const [userAnswer, setUserAnswer] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [result, setResult] = useState<ResultType | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(""); // ✅ NEW
+
+  const [generating, setGenerating] = useState(false);
+  const [evaluating, setEvaluating] = useState(false);
+
+  const [error, setError] = useState("");
 
   const [step, setStep] = useState(1);
   const [sessionData, setSessionData] = useState<QA[]>([]);
 
   const [showExitDialog, setShowExitDialog] = useState(false);
 
+  // ✅ RESTORE STATE
   useEffect(() => {
-    generateQuestion();
-  }, [type]);
+    const saved = localStorage.getItem(STORAGE_KEY);
 
-  // ✅ GENERATE QUESTION (FIXED)
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+
+        setQuestion(parsed.question || "");
+        setUserAnswer(parsed.userAnswer || "");
+        setStep(parsed.step || 1);
+        setSessionData(parsed.sessionData || []);
+      } catch (err) {
+        console.error("Failed to restore state");
+      }
+    }
+  }, []);
+
+  // ✅ ONLY GENERATE IF NO SAVED STATE
+  useEffect(() => {
+  const saved = localStorage.getItem(STORAGE_KEY);
+
+  if (saved) {
+    try {
+      const parsed = JSON.parse(saved);
+
+      // 🚀 ONLY skip if question actually exists
+      if (parsed.question && parsed.question.trim()) {
+        return;
+      }
+    } catch {}
+  }
+
+  generateQuestion();
+}, [type]);
+
+  // ✅ SAVE STATE
+  useEffect(() => {
+    const state = {
+      question,
+      userAnswer,
+      step,
+      sessionData,
+      type,
+      difficulty,
+    };
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }, [question, userAnswer, step, sessionData]);
+
+  // ✅ GENERATE QUESTION
   const generateQuestion = async () => {
     try {
-      setLoading(true);
+      setGenerating(true);
       setError("");
 
       const res = await fetch("/api/ai", {
@@ -73,32 +124,34 @@ export default function InterviewPanel({
       try {
         data = await res.json();
       } catch {
-        throw new Error("Invalid server response");
+        throw new Error("AI returned invalid response");
       }
 
       if (!res.ok) {
         throw new Error(data?.error || "Failed to generate question");
       }
 
-      if (!data?.question) {
-        throw new Error("No question received");
+      if (!data || typeof data.question !== "string" || !data.question.trim()) {
+        throw new Error("AI failed to generate a valid question");
       }
 
       setQuestion(data.question);
 
     } catch (err: any) {
       console.error(err);
-      setError(err.message || "Something went wrong");
+      setError(err.message || "AI failed to generate a question. Please retry.");
       setQuestion("");
     } finally {
-      setLoading(false);
+      setGenerating(false);
     }
   };
 
-  // ✅ EVALUATE ANSWER (FIXED)
+  // ✅ EVALUATE ANSWER
   const evaluateAnswer = async () => {
+    if (evaluating) return;
+
     try {
-      setLoading(true);
+      setEvaluating(true);
       setError("");
 
       const res = await fetch("/api/ai", {
@@ -114,15 +167,15 @@ export default function InterviewPanel({
       try {
         data = await res.json();
       } catch {
-        throw new Error("Invalid server response");
+        throw new Error("AI returned invalid evaluation");
       }
 
       if (!res.ok) {
         throw new Error(data?.error || "Evaluation failed");
       }
 
-      if (!data?.result) {
-        throw new Error("Invalid evaluation result");
+      if (!data || !data.result || typeof data.result.score !== "number") {
+        throw new Error("AI returned incomplete evaluation");
       }
 
       setResult(data.result);
@@ -139,14 +192,16 @@ export default function InterviewPanel({
 
     } catch (err: any) {
       console.error(err);
-      setError(err.message || "Something went wrong");
+      setError(err.message || "AI failed to evaluate your answer. Please retry.");
     } finally {
-      setLoading(false);
+      setEvaluating(false);
     }
   };
 
   const handleNext = async () => {
     if (step === TOTAL_QUESTIONS) {
+      localStorage.removeItem(STORAGE_KEY); // 🔥 CLEAR STATE
+
       router.push(
         `/interview/result?type=${type}&data=${encodeURIComponent(
           JSON.stringify(sessionData)
@@ -166,12 +221,13 @@ export default function InterviewPanel({
   return (
     <div className="glass border border-border rounded-2xl p-6 md:p-8 space-y-6">
       
-      {/* Exit Button */}
+      {/* Exit */}
       <div className="flex justify-end">
         <Button
           onClick={() => setShowExitDialog(true)}
           variant="ghost"
-          className="text-muted-foreground hover:text-red-500"
+          disabled={generating || evaluating}
+          className="text-muted-foreground hover:text-red-500 disabled:opacity-50"
         >
           Exit
         </Button>
@@ -185,7 +241,7 @@ export default function InterviewPanel({
         <span>{result ? `${result.score}/10` : "--"}</span>
       </div>
 
-      {/* ❌ ERROR UI (NEW) */}
+      {/* ERROR */}
       {error && (
         <div className="text-red-500 text-sm flex justify-between items-center">
           <span>{error}</span>
@@ -195,9 +251,20 @@ export default function InterviewPanel({
         </div>
       )}
 
-      {/* Question */}
-      <h2 className="text-xl md:text-2xl font-semibold">
-        {loading ? "Generating question..." : question || "No question available"}
+      {/* QUESTION */}
+      <h2 className="text-xl md:text-2xl font-semibold min-h-[60px]">
+        {generating ? (
+          <div className="animate-pulse space-y-2">
+            <div className="h-4 w-3/4 bg-muted rounded" />
+            <div className="h-4 w-1/2 bg-muted rounded" />
+          </div>
+        ) : question ? (
+          question
+        ) : (
+          <span className="text-sm text-muted-foreground">
+            No question generated. Try again.
+          </span>
+        )}
       </h2>
 
       {/* Answer */}
@@ -205,7 +272,7 @@ export default function InterviewPanel({
         value={userAnswer}
         onChange={(e) => setUserAnswer(e.target.value)}
         placeholder="Type your answer here..."
-        disabled={loading} // ✅ prevent typing during loading
+        disabled={generating || evaluating}
         className="w-full h-32 p-4 rounded-xl bg-muted border border-border focus:outline-none focus:ring-2 focus:ring-primary resize-none disabled:opacity-50"
       />
 
@@ -213,10 +280,10 @@ export default function InterviewPanel({
       {!submitted && (
         <Button
           onClick={evaluateAnswer}
-          disabled={!userAnswer.trim() || loading}
+          disabled={!userAnswer.trim() || evaluating}
           className="btn-glow bg-gradient-to-r from-purple-600 to-cyan-500 text-white disabled:opacity-50"
         >
-          {loading ? "Evaluating..." : "Submit Answer"}
+          {evaluating ? "Evaluating..." : "Submit Answer"}
         </Button>
       )}
 
@@ -244,7 +311,8 @@ export default function InterviewPanel({
 
             <Button
               onClick={handleNext}
-              className="bg-gradient-to-r from-purple-600 to-cyan-500 text-white"
+              disabled={generating}
+              className="bg-gradient-to-r from-purple-600 to-cyan-500 text-white disabled:opacity-50"
             >
               {step === TOTAL_QUESTIONS ? "Finish" : "Next Question"}
             </Button>

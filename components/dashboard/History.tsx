@@ -12,7 +12,7 @@ type Interview = {
 export default function History() {
   const [data, setData] = useState<Interview[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(""); // ✅ NEW
+  const [error, setError] = useState("");
 
   const fetchHistory = async () => {
     try {
@@ -23,7 +23,6 @@ export default function History() {
 
       let json = null;
 
-      // ✅ safe JSON parsing (VERY IMPORTANT)
       try {
         json = await res.json();
       } catch {
@@ -68,19 +67,23 @@ export default function History() {
       </h3>
 
       {loading ? (
-        <p className="text-sm text-muted-foreground">
-          Loading...
-        </p>
+        // 🔥 SKELETON LIST
+        <div className="space-y-4">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="animate-pulse flex justify-between items-center">
+              <div className="space-y-2">
+                <div className="h-3 w-24 bg-muted rounded" />
+                <div className="h-3 w-16 bg-muted rounded" />
+              </div>
+              <div className="h-4 w-10 bg-muted rounded" />
+            </div>
+          ))}
+        </div>
 
       ) : error ? (
         <div className="text-sm text-red-500 space-y-2">
           <p>{error}</p>
-
-          {/* ✅ retry button */}
-          <button
-            onClick={fetchHistory}
-            className="underline text-xs"
-          >
+          <button onClick={fetchHistory} className="underline text-xs">
             Retry
           </button>
         </div>
@@ -97,18 +100,15 @@ export default function History() {
               key={item.id}
               className="flex justify-between items-center border-b border-border pb-3 hover:opacity-80 transition"
             >
-              {/* Left */}
               <div className="flex flex-col">
                 <span className="text-sm font-medium">
                   {item.type}
                 </span>
-
                 <span className="text-xs text-muted-foreground">
                   {formatDate(item.createdAt)}
                 </span>
               </div>
 
-              {/* Right */}
               <span
                 className={`text-sm font-semibold ${getScoreColor(
                   item.score

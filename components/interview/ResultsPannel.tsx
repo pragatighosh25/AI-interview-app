@@ -13,24 +13,41 @@ export default function ResultsPanel() {
   const [data, setData] = useState<any[]>([]);
   const [saveError, setSaveError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const saved = useRef(false);
 
-  // ✅ SAFE PARSE (VERY IMPORTANT)
+  // ✅ SAFE + STRICT PARSE
   useEffect(() => {
     try {
       if (raw) {
         const parsed = JSON.parse(decodeURIComponent(raw));
-        setData(Array.isArray(parsed) ? parsed : []);
+
+        if (!Array.isArray(parsed)) {
+          throw new Error("Invalid data format");
+        }
+
+        // 🔥 FILTER INVALID ITEMS
+        const safeData = parsed.filter(
+          (item: any) =>
+            item &&
+            typeof item.question === "string" &&
+            item.result &&
+            typeof item.result.score === "number"
+        );
+
+        setData(safeData);
       }
     } catch (err) {
       console.error("Invalid data:", err);
       setData([]);
+    } finally {
+      setLoading(false);
     }
   }, [raw]);
 
   const total = data.reduce(
-    (acc: number, item: any) => acc + (item?.result?.score || 0),
+    (acc: number, item: any) => acc + (item.result.score || 0),
     0
   );
 
@@ -50,8 +67,10 @@ export default function ResultsPanel() {
     return "text-red-500";
   };
 
-  // ✅ FIXED SAVE SESSION
+  // ✅ SAVE SESSION (GUARDED)
   const saveSession = async () => {
+    if (!data.length) return; // 🔥 guard invalid data
+
     try {
       setSaving(true);
       setSaveError("");
@@ -78,7 +97,7 @@ export default function ResultsPanel() {
       }
 
     } catch (err: any) {
-      console.error("SAVE FAILED:", err);
+      console.error(err);
       setSaveError(err.message || "Failed to save results");
     } finally {
       setSaving(false);
@@ -92,10 +111,18 @@ export default function ResultsPanel() {
     }
   }, [data]);
 
+  if (loading) {
+    return (
+      <div className="animate-pulse space-y-4">
+        <div className="h-40 bg-muted rounded-2xl" />
+        <div className="h-60 bg-muted rounded-2xl" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
       
-      {/* Summary */}
       <div className="glass border border-border rounded-2xl p-8 text-center">
         <h1 className="text-3xl font-bold mb-2">
           Final Result
@@ -113,9 +140,8 @@ export default function ResultsPanel() {
           {getRemark()}
         </p>
 
-        {/* ✅ SAVE STATUS */}
         {saving && (
-          <p className="text-xs text-muted-foreground mb-2">
+          <p className="text-xs text-muted-foreground mb-2 animate-pulse">
             Saving results...
           </p>
         )}
@@ -123,10 +149,7 @@ export default function ResultsPanel() {
         {saveError && (
           <div className="text-red-500 text-sm mb-2">
             {saveError}{" "}
-            <button
-              onClick={saveSession}
-              className="underline text-xs"
-            >
+            <button onClick={saveSession} className="underline text-xs">
               Retry
             </button>
           </div>
@@ -145,7 +168,6 @@ export default function ResultsPanel() {
         </div>
       </div>
 
-      {/* Breakdown */}
       <div className="glass border border-border rounded-2xl p-6 space-y-4">
         <h2 className="text-xl font-semibold mb-2">
           Breakdown
@@ -153,7 +175,7 @@ export default function ResultsPanel() {
 
         {data.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            No data available
+            No valid interview data available
           </p>
         ) : (
           data.map((item: any, i: number) => (
@@ -167,16 +189,16 @@ export default function ResultsPanel() {
                 </p>
 
                 <p className="text-sm text-muted-foreground">
-                  {item?.result?.feedback || "No feedback"}
+                  {item.result.feedback || "No feedback"}
                 </p>
               </div>
 
               <span
                 className={`text-sm font-semibold ${getScoreColor(
-                  item?.result?.score || 0
+                  item.result.score
                 )}`}
               >
-                {item?.result?.score || 0}/10
+                {item.result.score}/10
               </span>
             </div>
           ))

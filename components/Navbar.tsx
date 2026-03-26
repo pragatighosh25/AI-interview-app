@@ -14,7 +14,7 @@ export default function Navbar() {
   const { data: session } = useSession();
   const router = useRouter();
 
-  // scroll shrink effect
+  // scroll effect
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 10);
@@ -38,10 +38,10 @@ export default function Navbar() {
   return (
     <>
       <nav
-        className={`w-full fixed top-0 my-2 z-50 transition-all duration-300 ${
+        className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 ${
           isScrolled
             ? "h-14 bg-background/80 backdrop-blur-xl border-b border-border"
-            : "h-16 bg-transparent"
+            : "h-16 bg-background/60 backdrop-blur-md"
         }`}
       >
         <div className="max-w-7xl mx-auto px-6 h-full flex items-center justify-between">
@@ -58,10 +58,8 @@ export default function Navbar() {
             </span>
           </Link>
 
-          {/* Desktop Right */}
+          {/* Desktop */}
           <div className="hidden md:flex items-center gap-3">
-            
-            {/* Home */}
             <Link href="/">
               <Button variant="ghost">Home</Button>
             </Link>
@@ -86,17 +84,17 @@ export default function Navbar() {
                 </Link>
 
                 <Button
-  onClick={handleLogout}
-  variant="destructive"
-  className="dark:text-red-400 dark:hover:text-red-200 dark:hover:bg-red-600"
->
-  Logout
-</Button>
+                  onClick={handleLogout}
+                  variant="destructive"
+                  className="dark:text-red-400 dark:hover:text-red-200 dark:hover:bg-red-600"
+                >
+                  Logout
+                </Button>
               </>
             )}
           </div>
 
-          {/* Mobile Menu Button */}
+          {/* Mobile toggle */}
           <button className="md:hidden p-2" onClick={() => setOpen(!open)}>
             {open ? <X /> : <Menu />}
           </button>

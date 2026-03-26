@@ -12,25 +12,29 @@ export async function POST(req: Request) {
 
     // 🔥 GENERATE QUESTION
     if (type === "generate") {
-      const completion = await client.chat.completions.create({
-        model: "llama-3.3-70b-versatile", // free + fast
-        messages: [
-          {
-            role: "system",
-            content:
-              "You are an expert interviewer. Ask one concise technical question.",
-          },
-          {
-            role: "user",
-            content: `Generate one ${difficulty} level ${role} interview question.`,
-          },
-        ],
-      });
+  const completion = await client.chat.completions.create({
+    model: "llama-3.3-70b-versatile",
+    messages: [
+      {
+        role: "system",
+        content:
+          "You are an expert interviewer. Ask ONE concise technical interview question. Only return the question text.",
+      },
+      {
+        role: "user",
+        content: `Generate one ${difficulty} level ${role} interview question.`,
+      },
+    ],
+  });
 
-      return NextResponse.json({
-        question: completion.choices[0].message.content,
-      });
-    }
+  const question = completion?.choices?.[0]?.message?.content?.trim();
+
+  if (!question) {
+    throw new Error("No question returned from AI");
+  }
+
+  return NextResponse.json({ question });
+}
 
     // 🔥 EVALUATE ANSWER
     if (type === "evaluate") {
