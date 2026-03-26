@@ -16,10 +16,18 @@ type QA = {
   result: ResultType;
 };
 
-export default function InterviewPanel({ type }: { type: string }) {
+export default function InterviewPanel({
+  type,
+  difficulty,
+  totalQuestions,
+}: {
+  type: string;
+  difficulty: string;
+  totalQuestions: number;
+}) {
   const router = useRouter();
 
-  const TOTAL_QUESTIONS = 5;
+  const TOTAL_QUESTIONS = totalQuestions;
 
   const [question, setQuestion] = useState("");
   const [userAnswer, setUserAnswer] = useState("");
@@ -41,9 +49,10 @@ export default function InterviewPanel({ type }: { type: string }) {
       const res = await fetch("/api/ai", {
         method: "POST",
         body: JSON.stringify({
-          type: "generate",
-          role: type,
-        }),
+  type: "generate",
+  role: type,
+  difficulty,
+}),
       });
 
       const data = await res.json();
@@ -114,8 +123,8 @@ export default function InterviewPanel({ type }: { type: string }) {
       {/* Progress */}
       <div className="flex justify-between text-sm text-muted-foreground">
         <span>
-          {type} Interview ({step}/{TOTAL_QUESTIONS})
-        </span>
+  {type} • {difficulty} ({step}/{TOTAL_QUESTIONS})
+</span>
         <span>{result ? `${result.score}/10` : "--"}</span>
       </div>
 

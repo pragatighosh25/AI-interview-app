@@ -8,7 +8,7 @@ const client = new OpenAI({
 
 export async function POST(req: Request) {
   try {
-    const { type, question, answer, role } = await req.json();
+    const { type, question, answer, role, difficulty } = await req.json();
 
     // 🔥 GENERATE QUESTION
     if (type === "generate") {
@@ -22,7 +22,7 @@ export async function POST(req: Request) {
           },
           {
             role: "user",
-            content: `Generate one ${role} interview question.`,
+            content: `Generate one ${difficulty} level ${role} interview question.`,
           },
         ],
       });

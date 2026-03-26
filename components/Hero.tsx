@@ -2,8 +2,21 @@
 
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Play } from "lucide-react";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
 export default function Hero() {
+  const { data: session } = useSession();
+  const router = useRouter();
+
+  const handleStart = () => {
+    if (session) {
+      router.push("/dashboard");
+    } else {
+      router.push("/login");
+    }
+  };
+
   return (
     <section className="relative w-full pt-28 pb-20 px-6 flex items-center justify-center">
       
@@ -31,13 +44,17 @@ export default function Hero() {
         {/* CTA buttons */}
         <div className="flex flex-col sm:flex-row gap-4 items-center justify-center">
           
-          <Button className="w-full sm:w-auto btn-glow bg-gradient-to-r from-purple-600 to-cyan-500 text-white px-6 py-5 text-lg flex items-center justify-center gap-2">
-            Start Interview
+          <Button
+            onClick={handleStart}
+            className="w-full sm:w-auto btn-glow bg-gradient-to-r from-purple-600 to-cyan-500 text-white px-6 py-5 text-lg flex items-center justify-center gap-2"
+          >
+            {session ? "Go to Dashboard" : "Start Interview"}
             <ArrowRight className="w-5 h-5" />
           </Button>
 
           <Button
             variant="outline"
+            onClick={() => window.scrollTo({ top: 600, behavior: "smooth" })}
             className="w-full sm:w-auto px-6 py-5 text-lg flex items-center justify-center gap-2 hover:border-purple-500"
           >
             <Play className="w-5 h-5" />
@@ -45,7 +62,6 @@ export default function Hero() {
           </Button>
         </div>
 
-        {/* trust line */}
         <p className="text-xs text-muted-foreground mt-6">
           No signup required • Free to start
         </p>

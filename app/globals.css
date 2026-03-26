@@ -112,8 +112,8 @@
     @apply bg-background text-foreground;
   }
   html {
-    @apply font-sans;
-  }
+  font-family: var(--font-inter), sans-serif;
+}
   h1, h2, h3, h4 {
   @apply font-semibold tracking-tight;
 }
