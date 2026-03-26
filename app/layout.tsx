@@ -12,6 +12,10 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "IntervueX",
   description: "AI Interview Practice Platform",
+  icons: {
+    icon: "/image.png", 
+  },
+
 };
 
 export default function RootLayout({

@@ -18,9 +18,18 @@ export default function History() {
       try {
         const res = await fetch("/api/history");
         const json = await res.json();
-        setData(json);
+
+        // ✅ Safe handling
+        if (!res.ok) {
+          console.error(json.error);
+          setData([]);
+          return;
+        }
+
+        setData(Array.isArray(json) ? json : []);
       } catch (err) {
         console.error(err);
+        setData([]);
       } finally {
         setLoading(false);
       }
@@ -57,7 +66,7 @@ export default function History() {
           No interviews yet
         </p>
       ) : (
-        <div className="space-y-4 overflow-y-auto flex-1 pr-1">
+        <div className="space-y-4 overflow-y-auto custom-scroll flex-1 pr-1">
           {data.map((item) => (
             <div
               key={item.id}

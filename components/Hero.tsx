@@ -32,7 +32,7 @@ export default function Hero() {
         <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold leading-tight tracking-tight mb-6">
           Crack Your Next{" "}
           <span className="gradient-text">Interview</span>{" "}
-          with AI
+          with IntervueX
         </h1>
 
         {/* Subheading */}
@@ -62,9 +62,7 @@ export default function Hero() {
           </Button>
         </div>
 
-        <p className="text-xs text-muted-foreground mt-6">
-          No signup required • Free to start
-        </p>
+        
       </div>
     </section>
   );
