@@ -49,7 +49,7 @@ export default function Hero() {
             className="w-full sm:w-auto btn-glow bg-gradient-to-r from-purple-600 to-cyan-500 text-white px-6 py-5 text-lg flex items-center justify-center gap-2"
           >
             {session ? "Go to Dashboard" : "Start Interview"}
-            <ArrowRight className="w-5 h-5" />
+            
           </Button>
 
           <Button
@@ -57,7 +57,7 @@ export default function Hero() {
             onClick={() => window.scrollTo({ top: 600, behavior: "smooth" })}
             className="w-full sm:w-auto px-6 py-5 text-lg flex items-center justify-center gap-2 hover:border-purple-500"
           >
-            <Play className="w-5 h-5" />
+          
             Watch Demo
           </Button>
         </div>

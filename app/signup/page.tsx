@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 export default function SignupPage() {
   const [name, setName] = useState("");
@@ -24,7 +25,7 @@ export default function SignupPage() {
       window.location.href = "/login";
     } else {
       const data = await res.json();
-      alert(data.error || "Something went wrong");
+      toast.error(data.error || "Something went wrong");
     }
   };
 

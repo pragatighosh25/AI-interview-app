@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -21,7 +22,7 @@ export default function LoginPage() {
     if (!res?.error) {
       window.location.href = "/dashboard";
     } else {
-      alert("Invalid credentials");
+      toast.error("Invalid credentials");
     }
   };
 

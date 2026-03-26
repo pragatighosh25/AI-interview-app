@@ -4,6 +4,15 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+
 type ResultType = {
   score: number;
   expected: string;
@@ -38,6 +47,8 @@ export default function InterviewPanel({
   const [step, setStep] = useState(1);
   const [sessionData, setSessionData] = useState<QA[]>([]);
 
+  const [showExitDialog, setShowExitDialog] = useState(false);
+
   useEffect(() => {
     generateQuestion();
   }, [type]);
@@ -49,10 +60,10 @@ export default function InterviewPanel({
       const res = await fetch("/api/ai", {
         method: "POST",
         body: JSON.stringify({
-  type: "generate",
-  role: type,
-  difficulty,
-}),
+          type: "generate",
+          role: type,
+          difficulty,
+        }),
       });
 
       const data = await res.json();
@@ -82,7 +93,6 @@ export default function InterviewPanel({
       setResult(data.result);
       setSubmitted(true);
 
-      // store result
       setSessionData((prev) => [
         ...prev,
         {
@@ -100,12 +110,11 @@ export default function InterviewPanel({
 
   const handleNext = async () => {
     if (step === TOTAL_QUESTIONS) {
-      // go to result page
       router.push(
-  `/interview/result?type=${type}&data=${encodeURIComponent(
-    JSON.stringify(sessionData)
-  )}`
-);
+        `/interview/result?type=${type}&data=${encodeURIComponent(
+          JSON.stringify(sessionData)
+        )}`
+      );
       return;
     }
 
@@ -120,11 +129,22 @@ export default function InterviewPanel({
   return (
     <div className="glass border border-border rounded-2xl p-6 md:p-8 space-y-6">
       
+      {/* Exit Button */}
+      <div className="flex justify-end">
+        <Button
+          onClick={() => setShowExitDialog(true)}
+          variant="ghost"
+          className="text-muted-foreground hover:text-red-500"
+        >
+          Exit
+        </Button>
+      </div>
+
       {/* Progress */}
       <div className="flex justify-between text-sm text-muted-foreground">
         <span>
-  {type} • {difficulty} ({step}/{TOTAL_QUESTIONS})
-</span>
+          {type} • {difficulty} ({step}/{TOTAL_QUESTIONS})
+        </span>
         <span>{result ? `${result.score}/10` : "--"}</span>
       </div>
 
@@ -155,7 +175,6 @@ export default function InterviewPanel({
       {/* Result */}
       {submitted && result && (
         <div className="space-y-4">
-          
           <div className="p-4 rounded-xl bg-muted border border-border">
             <p className="text-sm text-muted-foreground mb-2">
               Expected Answer
@@ -184,6 +203,34 @@ export default function InterviewPanel({
           </div>
         </div>
       )}
+
+      {/* EXIT DIALOG */}
+      <Dialog open={showExitDialog} onOpenChange={setShowExitDialog}>
+        <DialogContent className="glass border border-border">
+          <DialogHeader>
+            <DialogTitle>Exit Interview?</DialogTitle>
+            <DialogDescription>
+              Your progress will not be saved.
+            </DialogDescription>
+          </DialogHeader>
+
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => setShowExitDialog(false)}
+            >
+              Cancel
+            </Button>
+
+            <Button
+              variant="destructive"
+              onClick={() => router.push("/dashboard")}
+            >
+              Exit
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import { Toaster } from "sonner";
 
 import Providers from "@/components/Providers";
 
@@ -29,8 +30,9 @@ export default function RootLayout({
       className={`${inter.variable} h-full dark antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <Providers>{children}</Providers>
-      </body>
+  <Providers>{children}</Providers>
+  <Toaster richColors position="top-right" />
+</body>
     </html>
   );
 }

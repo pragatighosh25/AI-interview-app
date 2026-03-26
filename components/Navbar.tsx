@@ -86,11 +86,12 @@ export default function Navbar() {
                 </Link>
 
                 <Button
-                  onClick={handleLogout}
-                  variant="destructive"
-                >
-                  Logout
-                </Button>
+  onClick={handleLogout}
+  variant="destructive"
+  className="dark:text-red-400 dark:hover:text-red-200 dark:hover:bg-red-600"
+>
+  Logout
+</Button>
               </>
             )}
           </div>

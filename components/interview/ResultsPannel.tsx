@@ -24,9 +24,9 @@ export default function ResultsPanel() {
   const saved = useRef(false);
 
   const getRemark = () => {
-    if (avg >= 8) return "Excellent 🚀 You're interview ready!";
-    if (avg >= 6) return "Good 👍 Keep refining your answers.";
-    return "Needs Improvement 📚 Practice more!";
+    if (avg >= 8) return "Excellent, You're interview ready!";
+    if (avg >= 6) return "Good, Keep refining your answers.";
+    return "Needs Improvement, Practice more!";
   };
 
   const getScoreColor = (score: number) => {
@@ -35,7 +35,7 @@ export default function ResultsPanel() {
     return "text-red-500";
   };
 
-  // 🔥 SAVE SESSION TO DB (only once)
+  
   const saveSession = async () => {
     try {
       await fetch("/api/interview", {
