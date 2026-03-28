@@ -55,44 +55,58 @@ export default function InterviewPanel({
 
   const [showExitDialog, setShowExitDialog] = useState(false);
 
-  // ✅ RESTORE STATE
+  const [hydrated, setHydrated] = useState(false);
+
+  // ✅ Hydration fix
   useEffect(() => {
+    setHydrated(true);
+  }, []);
+
+  // ✅ Restore state (SSR safe)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (!saved) return;
+
+      const parsed = JSON.parse(saved);
+
+      setQuestion(parsed?.question || "");
+      setUserAnswer(parsed?.userAnswer || "");
+      setStep(parsed?.step || 1);
+      setSessionData(parsed?.sessionData || []);
+    } catch (err) {
+      console.error("Failed to restore state");
+      localStorage.removeItem(STORAGE_KEY);
+    }
+  }, []);
+
+  // ✅ Generate question if needed
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
     const saved = localStorage.getItem(STORAGE_KEY);
 
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
 
-        setQuestion(parsed.question || "");
-        setUserAnswer(parsed.userAnswer || "");
-        setStep(parsed.step || 1);
-        setSessionData(parsed.sessionData || []);
-      } catch (err) {
-        console.error("Failed to restore state");
+        if (parsed?.question && parsed.question.trim()) {
+          return;
+        }
+      } catch {
+        localStorage.removeItem(STORAGE_KEY);
       }
     }
-  }, []);
 
- 
+    generateQuestion();
+  }, [type]);
+
+  // ✅ Save state
   useEffect(() => {
-  const saved = localStorage.getItem(STORAGE_KEY);
+    if (typeof window === "undefined") return;
 
-  if (saved) {
-    try {
-      const parsed = JSON.parse(saved);
-
-      // ONLY skip if question actually exists
-      if (parsed.question && parsed.question.trim()) {
-        return;
-      }
-    } catch {}
-  }
-
-  generateQuestion();
-}, [type]);
-
-  // ✅ SAVE STATE
-  useEffect(() => {
     const state = {
       question,
       userAnswer,
@@ -105,7 +119,7 @@ export default function InterviewPanel({
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   }, [question, userAnswer, step, sessionData]);
 
-  // ✅ GENERATE QUESTION
+  // ✅ Generate question
   const generateQuestion = async () => {
     try {
       setGenerating(true);
@@ -113,6 +127,9 @@ export default function InterviewPanel({
 
       const res = await fetch("/api/ai", {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
           type: "generate",
           role: type,
@@ -120,33 +137,28 @@ export default function InterviewPanel({
         }),
       });
 
-      let data;
-      try {
-        data = await res.json();
-      } catch {
-        throw new Error("AI returned invalid response");
-      }
+      const data = await res.json();
 
       if (!res.ok) {
         throw new Error(data?.error || "Failed to generate question");
       }
 
-      if (!data || typeof data.question !== "string" || !data.question.trim()) {
-        throw new Error("AI failed to generate a valid question");
+      if (!data?.question || typeof data.question !== "string") {
+        throw new Error("Invalid question from AI");
       }
 
-      setQuestion(data.question);
-
+      setQuestion(data.question.trim());
     } catch (err: any) {
       console.error(err);
-      setError(err.message || "AI failed to generate a question. Please retry.");
+      setError(err.message || "AI failed to generate a question.");
       setQuestion("");
+      localStorage.removeItem(STORAGE_KEY); // 🔥 prevent stuck state
     } finally {
       setGenerating(false);
     }
   };
 
-  // ✅ EVALUATE ANSWER
+  // ✅ Evaluate answer
   const evaluateAnswer = async () => {
     if (evaluating) return;
 
@@ -156,6 +168,9 @@ export default function InterviewPanel({
 
       const res = await fetch("/api/ai", {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
           type: "evaluate",
           question,
@@ -163,19 +178,14 @@ export default function InterviewPanel({
         }),
       });
 
-      let data;
-      try {
-        data = await res.json();
-      } catch {
-        throw new Error("AI returned invalid evaluation");
-      }
+      const data = await res.json();
 
       if (!res.ok) {
         throw new Error(data?.error || "Evaluation failed");
       }
 
-      if (!data || !data.result || typeof data.result.score !== "number") {
-        throw new Error("AI returned incomplete evaluation");
+      if (!data?.result || typeof data.result.score !== "number") {
+        throw new Error("Invalid evaluation response");
       }
 
       setResult(data.result);
@@ -189,10 +199,9 @@ export default function InterviewPanel({
           result: data.result,
         },
       ]);
-
     } catch (err: any) {
       console.error(err);
-      setError(err.message || "AI failed to evaluate your answer. Please retry.");
+      setError(err.message || "AI failed to evaluate.");
     } finally {
       setEvaluating(false);
     }
@@ -200,7 +209,7 @@ export default function InterviewPanel({
 
   const handleNext = async () => {
     if (step === TOTAL_QUESTIONS) {
-      localStorage.removeItem(STORAGE_KEY); // 🔥 CLEAR STATE
+      localStorage.removeItem(STORAGE_KEY);
 
       router.push(
         `/interview/result?type=${type}&data=${encodeURIComponent(
@@ -217,6 +226,8 @@ export default function InterviewPanel({
 
     await generateQuestion();
   };
+
+  if (!hydrated) return null;
 
   return (
     <div className="glass border border-border rounded-2xl p-6 md:p-8 space-y-6">

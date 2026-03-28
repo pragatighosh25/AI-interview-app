@@ -69,7 +69,7 @@ export default function ResultsPanel() {
 
   // ✅ SAVE SESSION (GUARDED)
   const saveSession = async () => {
-    if (!data.length) return; // 🔥 guard invalid data
+    if (!data.length) return; 
 
     try {
       setSaving(true);
