@@ -1,10 +1,12 @@
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
 export async function GET() {
   try {
-    const session = await getServerSession();
+    // 🔐 AUTH CHECK (fixed)
+    const session = await getServerSession(authOptions);
 
     if (!session?.user?.email) {
       return NextResponse.json(
@@ -13,7 +15,7 @@ export async function GET() {
       );
     }
 
-    // 🔥 fetch only required fields
+    // 🔥 fetch only required fields (safe + optimized)
     const interviews = await prisma.interview.findMany({
       where: {
         user: {
@@ -29,7 +31,7 @@ export async function GET() {
         score: true,
         createdAt: true,
       },
-      take: 20, // 🔥 limit for performance
+      take: 20,
     });
 
     return NextResponse.json(interviews);
@@ -38,7 +40,7 @@ export async function GET() {
     console.error("HISTORY ERROR:", err);
 
     return NextResponse.json(
-      { error: "Failed to fetch history" },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }

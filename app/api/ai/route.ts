@@ -1,43 +1,82 @@
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
 const client = new OpenAI({
   apiKey: process.env.GROQ_API_KEY,
-  baseURL: "https://api.groq.com/openai/v1", // 🔥 important
+  baseURL: "https://api.groq.com/openai/v1",
 });
 
 export async function POST(req: Request) {
   try {
-    const { type, question, answer, role, difficulty } = await req.json();
+    // 🔐 AUTH CHECK
+    const session = await getServerSession(authOptions);
+
+    if (!session) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
+    const body = await req.json();
+    const { type, question, answer, role, difficulty } = body;
+
+    // ❌ basic validation
+    if (!type) {
+      return NextResponse.json(
+        { error: "Type is required" },
+        { status: 400 }
+      );
+    }
 
     // 🔥 GENERATE QUESTION
     if (type === "generate") {
-  const completion = await client.chat.completions.create({
-    model: "llama-3.3-70b-versatile",
-    messages: [
-      {
-        role: "system",
-        content:
-          "You are an expert interviewer. Ask ONE concise technical interview question. Only return the question text.",
-      },
-      {
-        role: "user",
-        content: `Generate one ${difficulty} level ${role} interview question.`,
-      },
-    ],
-  });
+      if (!role || !difficulty) {
+        return NextResponse.json(
+          { error: "Missing role or difficulty" },
+          { status: 400 }
+        );
+      }
 
-  const question = completion?.choices?.[0]?.message?.content?.trim();
+      const completion = await client.chat.completions.create({
+        model: "llama-3.3-70b-versatile",
+        messages: [
+          {
+            role: "system",
+            content:
+              "You are an expert interviewer. Ask ONE concise technical interview question. Only return the question text.",
+          },
+          {
+            role: "user",
+            content: `Generate one ${difficulty} level ${role} interview question.`,
+          },
+        ],
+      });
 
-  if (!question) {
-    throw new Error("No question returned from AI");
-  }
+      const question =
+        completion?.choices?.[0]?.message?.content?.trim();
 
-  return NextResponse.json({ question });
-}
+      if (!question) {
+        return NextResponse.json(
+          { error: "AI failed to generate question" },
+          { status: 500 }
+        );
+      }
+
+      return NextResponse.json({ question });
+    }
 
     // 🔥 EVALUATE ANSWER
     if (type === "evaluate") {
+      if (!question || !answer) {
+        return NextResponse.json(
+          { error: "Missing question or answer" },
+          { status: 400 }
+        );
+      }
+
       const completion = await client.chat.completions.create({
         model: "llama-3.3-70b-versatile",
         messages: [
@@ -74,15 +113,20 @@ Return ONLY JSON:
         };
       }
 
-      return NextResponse.json({
-        result: parsed,
-      });
+      return NextResponse.json({ result: parsed });
     }
 
-  } catch (err) {
-    console.error(err);
+    // ❌ invalid type
     return NextResponse.json(
-      { error: "AI failed" },
+      { error: "Invalid type" },
+      { status: 400 }
+    );
+
+  } catch (err) {
+    console.error("AI Route Error:", err);
+
+    return NextResponse.json(
+      { error: "Internal server error" },
       { status: 500 }
     );
   }

@@ -73,7 +73,7 @@ export default function InterviewPanel({
     }
   }, []);
 
-  // ✅ ONLY GENERATE IF NO SAVED STATE
+ 
   useEffect(() => {
   const saved = localStorage.getItem(STORAGE_KEY);
 
@@ -81,7 +81,7 @@ export default function InterviewPanel({
     try {
       const parsed = JSON.parse(saved);
 
-      // 🚀 ONLY skip if question actually exists
+      // ONLY skip if question actually exists
       if (parsed.question && parsed.question.trim()) {
         return;
       }

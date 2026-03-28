@@ -14,9 +14,8 @@ export const metadata: Metadata = {
   title: "IntervueX",
   description: "AI Interview Practice Platform",
   icons: {
-    icon: "/image.png", 
+    icon: "/image.png",
   },
-
 };
 
 export default function RootLayout({
@@ -25,14 +24,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html
-      lang="en"
-      className={`${inter.variable} h-full dark antialiased`}
-    >
+    <html lang="en" className={`${inter.variable} h-full dark antialiased`}>
       <body className="min-h-full flex flex-col">
-  <Providers>{children}</Providers>
-  <Toaster richColors position="top-right" />
-</body>
+        <Providers>{children}</Providers>
+        <Toaster richColors position="top-right" />
+      </body>
     </html>
   );
 }

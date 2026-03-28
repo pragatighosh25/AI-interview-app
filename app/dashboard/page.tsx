@@ -23,7 +23,7 @@ export default async function Dashboard() {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h1 className="text-3xl font-bold">
-              Welcome back {session.user?.name || "User"} 👋
+              Welcome back {session.user?.name || "User"}
             </h1>
             <p className="text-muted-foreground">
               Ready to crack your next interview?

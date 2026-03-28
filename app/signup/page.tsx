@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 export default function SignupPage() {
   const [name, setName] = useState("");
@@ -11,6 +12,8 @@ export default function SignupPage() {
   const [password, setPassword] = useState("");
 
   const [loading, setLoading] = useState(false); // ✅ NEW
+
+  const router = useRouter();
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,9 +44,9 @@ export default function SignupPage() {
       }
 
       // ✅ success
-      toast.success("Account created 🎉");
+      toast.success("Account created successfully! Please login.");
 
-      window.location.href = "/login";
+      router.push("/login");;
 
     } catch (err: any) {
       console.error(err);

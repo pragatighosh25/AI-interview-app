@@ -45,7 +45,6 @@ export default function Navbar() {
         }`}
       >
         <div className="max-w-7xl mx-auto px-6 h-full flex items-center justify-between">
-          
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 group">
             <img
@@ -110,7 +109,6 @@ export default function Navbar() {
         }`}
       >
         <div className="flex flex-col items-center justify-center h-full gap-8 text-lg">
-          
           <Link href="/" onClick={() => setOpen(false)}>
             <Button variant="ghost">Home</Button>
           </Link>
