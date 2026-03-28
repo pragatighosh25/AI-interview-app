@@ -40,7 +40,9 @@ export default function InterviewPanel({
 
   const TOTAL_QUESTIONS = totalQuestions;
 
+  const [questions, setQuestions] = useState<string[]>([]);
   const [question, setQuestion] = useState("");
+
   const [userAnswer, setUserAnswer] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [result, setResult] = useState<ResultType | null>(null);
@@ -54,15 +56,13 @@ export default function InterviewPanel({
   const [sessionData, setSessionData] = useState<QA[]>([]);
 
   const [showExitDialog, setShowExitDialog] = useState(false);
-
   const [hydrated, setHydrated] = useState(false);
 
-  // ✅ Hydration fix
   useEffect(() => {
     setHydrated(true);
   }, []);
 
-  // ✅ Restore state (SSR safe)
+  // ✅ Restore state
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -72,17 +72,17 @@ export default function InterviewPanel({
 
       const parsed = JSON.parse(saved);
 
+      setQuestions(parsed?.questions || []);
       setQuestion(parsed?.question || "");
       setUserAnswer(parsed?.userAnswer || "");
       setStep(parsed?.step || 1);
       setSessionData(parsed?.sessionData || []);
-    } catch (err) {
-      console.error("Failed to restore state");
+    } catch {
       localStorage.removeItem(STORAGE_KEY);
     }
   }, []);
 
-  // ✅ Generate question if needed
+  // ✅ Generate ALL questions once
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -91,16 +91,13 @@ export default function InterviewPanel({
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-
-        if (parsed?.question && parsed.question.trim()) {
-          return;
-        }
+        if (parsed?.questions?.length) return;
       } catch {
         localStorage.removeItem(STORAGE_KEY);
       }
     }
 
-    generateQuestion();
+    generateQuestions();
   }, [type]);
 
   // ✅ Save state
@@ -108,6 +105,7 @@ export default function InterviewPanel({
     if (typeof window === "undefined") return;
 
     const state = {
+      questions,
       question,
       userAnswer,
       step,
@@ -117,10 +115,10 @@ export default function InterviewPanel({
     };
 
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  }, [question, userAnswer, step, sessionData]);
+  }, [questions, question, userAnswer, step, sessionData]);
 
-  // ✅ Generate question
-  const generateQuestion = async () => {
+  // 🔥 Generate multiple questions
+  const generateQuestions = async () => {
     try {
       setGenerating(true);
       setError("");
@@ -134,25 +132,22 @@ export default function InterviewPanel({
           type: "generate",
           role: type,
           difficulty,
+          count: TOTAL_QUESTIONS,
         }),
       });
 
       const data = await res.json();
 
-      if (!res.ok) {
-        throw new Error(data?.error || "Failed to generate question");
+      if (!res.ok || !data?.questions) {
+        throw new Error(data?.error || "Failed to generate questions");
       }
 
-      if (!data?.question || typeof data.question !== "string") {
-        throw new Error("Invalid question from AI");
-      }
-
-      setQuestion(data.question.trim());
+      setQuestions(data.questions);
+      setQuestion(data.questions[0]);
     } catch (err: any) {
       console.error(err);
-      setError(err.message || "AI failed to generate a question.");
-      setQuestion("");
-      localStorage.removeItem(STORAGE_KEY); // 🔥 prevent stuck state
+      setError(err.message || "Failed to generate questions");
+      localStorage.removeItem(STORAGE_KEY);
     } finally {
       setGenerating(false);
     }
@@ -180,12 +175,8 @@ export default function InterviewPanel({
 
       const data = await res.json();
 
-      if (!res.ok) {
+      if (!res.ok || !data?.result) {
         throw new Error(data?.error || "Evaluation failed");
-      }
-
-      if (!data?.result || typeof data.result.score !== "number") {
-        throw new Error("Invalid evaluation response");
       }
 
       setResult(data.result);
@@ -193,21 +184,17 @@ export default function InterviewPanel({
 
       setSessionData((prev) => [
         ...prev,
-        {
-          question,
-          userAnswer,
-          result: data.result,
-        },
+        { question, userAnswer, result: data.result },
       ]);
     } catch (err: any) {
-      console.error(err);
-      setError(err.message || "AI failed to evaluate.");
+      setError(err.message || "Evaluation failed");
     } finally {
       setEvaluating(false);
     }
   };
 
-  const handleNext = async () => {
+  // 🔥 Next question WITHOUT API call
+  const handleNext = () => {
     if (step === TOTAL_QUESTIONS) {
       localStorage.removeItem(STORAGE_KEY);
 
@@ -219,26 +206,26 @@ export default function InterviewPanel({
       return;
     }
 
-    setStep((prev) => prev + 1);
+    const nextStep = step + 1;
+
+    setStep(nextStep);
     setUserAnswer("");
     setSubmitted(false);
     setResult(null);
 
-    await generateQuestion();
+    setQuestion(questions[nextStep - 1]);
   };
 
   if (!hydrated) return null;
 
   return (
     <div className="glass border border-border rounded-2xl p-6 md:p-8 space-y-6">
-      
       {/* Exit */}
       <div className="flex justify-end">
         <Button
           onClick={() => setShowExitDialog(true)}
           variant="ghost"
           disabled={generating || evaluating}
-          className="text-muted-foreground hover:text-red-500 disabled:opacity-50"
         >
           Exit
         </Button>
@@ -254,9 +241,9 @@ export default function InterviewPanel({
 
       {/* ERROR */}
       {error && (
-        <div className="text-red-500 text-sm flex justify-between items-center">
+        <div className="text-red-500 text-sm flex justify-between">
           <span>{error}</span>
-          <button onClick={generateQuestion} className="underline text-xs">
+          <button onClick={generateQuestions} className="underline text-xs">
             Retry
           </button>
         </div>
@@ -272,9 +259,7 @@ export default function InterviewPanel({
         ) : question ? (
           question
         ) : (
-          <span className="text-sm text-muted-foreground">
-            No question generated. Try again.
-          </span>
+          <span>No question generated</span>
         )}
       </h2>
 
@@ -282,77 +267,44 @@ export default function InterviewPanel({
       <textarea
         value={userAnswer}
         onChange={(e) => setUserAnswer(e.target.value)}
-        placeholder="Type your answer here..."
+        placeholder="Type your answer..."
         disabled={generating || evaluating}
-        className="w-full h-32 p-4 rounded-xl bg-muted border border-border focus:outline-none focus:ring-2 focus:ring-primary resize-none disabled:opacity-50"
+        className="w-full h-32 p-4 rounded-xl bg-muted border"
       />
 
-      {/* Submit */}
       {!submitted && (
         <Button
           onClick={evaluateAnswer}
-          disabled={!userAnswer.trim() || evaluating}
-          className="btn-glow bg-gradient-to-r from-purple-600 to-cyan-500 text-white disabled:opacity-50"
+          disabled={!userAnswer.trim()}
         >
           {evaluating ? "Evaluating..." : "Submit Answer"}
         </Button>
       )}
 
-      {/* Result */}
       {submitted && result && (
         <div className="space-y-4">
-          <div className="p-4 rounded-xl bg-muted border border-border">
-            <p className="text-sm text-muted-foreground mb-2">
-              Expected Answer
-            </p>
-            <p>{result.expected}</p>
-          </div>
+          <p>{result.expected}</p>
+          <p>{result.feedback}</p>
 
-          <div className="p-4 rounded-xl bg-muted border border-border">
-            <p className="text-sm text-muted-foreground mb-2">
-              Feedback
-            </p>
-            <p>{result.feedback}</p>
-          </div>
-
-          <div className="flex justify-between items-center">
-            <span className="text-lg font-semibold">
-              Score: {result.score} / 10
-            </span>
-
-            <Button
-              onClick={handleNext}
-              disabled={generating}
-              className="bg-gradient-to-r from-purple-600 to-cyan-500 text-white disabled:opacity-50"
-            >
-              {step === TOTAL_QUESTIONS ? "Finish" : "Next Question"}
-            </Button>
-          </div>
+          <Button onClick={handleNext}>
+            {step === TOTAL_QUESTIONS ? "Finish" : "Next"}
+          </Button>
         </div>
       )}
 
-      {/* EXIT DIALOG */}
+      {/* Exit dialog unchanged */}
       <Dialog open={showExitDialog} onOpenChange={setShowExitDialog}>
-        <DialogContent className="glass border border-border">
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>Exit Interview?</DialogTitle>
             <DialogDescription>
-              Your progress will not be saved.
+              Progress will be lost.
             </DialogDescription>
           </DialogHeader>
 
           <DialogFooter>
-            <Button
-              variant="ghost"
-              onClick={() => setShowExitDialog(false)}
-            >
-              Cancel
-            </Button>
-
-            <Button
-              variant="destructive"
-              onClick={() => router.push("/dashboard")}
-            >
+            <Button onClick={() => setShowExitDialog(false)}>Cancel</Button>
+            <Button onClick={() => router.push("/dashboard")}>
               Exit
             </Button>
           </DialogFooter>

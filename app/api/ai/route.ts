@@ -10,7 +10,6 @@ const client = new OpenAI({
 
 export async function POST(req: Request) {
   try {
-    // 🔐 AUTH CHECK
     const session = await getServerSession(authOptions);
 
     if (!session) {
@@ -18,21 +17,22 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { type, question, answer, role, difficulty } = body;
+    const { type, question, answer, role, difficulty, count } = body;
 
-    // ❌ basic validation
     if (!type) {
       return NextResponse.json({ error: "Type is required" }, { status: 400 });
     }
 
-    // 🔥 GENERATE QUESTION
+    // 🔥 GENERATE MULTIPLE QUESTIONS
     if (type === "generate") {
       if (!role || !difficulty) {
         return NextResponse.json(
           { error: "Missing role or difficulty" },
-          { status: 400 },
+          { status: 400 }
         );
       }
+
+      const total = count || 5;
 
       const completion = await client.chat.completions.create({
         model: "llama-3.3-70b-versatile",
@@ -42,40 +42,53 @@ export async function POST(req: Request) {
             content: `
 You are a senior technical interviewer.
 
-Generate exactly ONE high-quality interview question.
+Generate ${total} high-quality interview questions.
 
 Rules:
 - Domain: ${role}
 - Difficulty: ${difficulty}
-- The question should be realistic and asked in real interviews
-- Do NOT include explanation or answer
-- Keep it concise but meaningful
-- Avoid generic or vague questions
+- Questions must be realistic and non-repetitive
+- Cover different concepts
+- Keep them concise
+- Do NOT include answers or explanations
 
-Return ONLY the question text.
-      `,
+Return ONLY a JSON array:
+["question1", "question2", ...]
+            `,
           },
         ],
       });
 
-      const question = completion?.choices?.[0]?.message?.content?.trim();
+      const raw = completion.choices[0].message.content || "";
 
-      if (!question) {
+      let questions: string[] = [];
+
+      try {
+        const match = raw.match(/\[[\s\S]*\]/);
+        questions = JSON.parse(match?.[0] || "[]");
+      } catch {
         return NextResponse.json(
-          { error: "AI failed to generate question" },
-          { status: 500 },
+          { error: "Failed to parse questions" },
+          { status: 500 }
         );
       }
 
-      return NextResponse.json({ question });
+      if (!questions.length) {
+        return NextResponse.json(
+          { error: "No questions generated" },
+          { status: 500 }
+        );
+      }
+
+      return NextResponse.json({ questions });
     }
 
-    // 🔥 EVALUATE ANSWER
+    // 🔥 EVALUATE ANSWER (same but improved clarity)
     if (type === "evaluate") {
       if (!question || !answer) {
         return NextResponse.json(
           { error: "Missing question or answer" },
-          { status: 400 },
+          { status: 400 }
         );
       }
 
@@ -87,32 +100,22 @@ Return ONLY the question text.
             content: `
 You are a senior technical interviewer evaluating a candidate.
 
-Evaluate the answer strictly.
-
-Return ONLY JSON in this format:
+Return ONLY JSON:
 {
   "score": number (0-10),
-  "expected": "A strong ideal answer to the question",
-  "feedback": "Detailed feedback including: 
-    - what was correct
-    - what was missing
-    - how it could be improved"
+  "expected": "A strong ideal answer",
+  "feedback": "What was good, what was missing, and how to improve"
 }
 
-Scoring Guidelines:
-- 9-10: Excellent, nearly perfect
-- 7-8: Good, minor gaps
-- 5-6: Average, missing key points
-- 3-4: Weak understanding
-- 0-2: Incorrect or irrelevant
+Scoring:
+- 9-10: Excellent
+- 7-8: Good
+- 5-6: Average
+- 3-4: Weak
+- 0-2: Incorrect
 
-Feedback Rules:
-- Be constructive, not harsh
-- Mention specific improvements
-- Keep it clear and useful
-
-Do NOT return anything except JSON.
-      `,
+Be constructive and specific.
+            `,
           },
           {
             role: "user",
@@ -126,8 +129,8 @@ Do NOT return anything except JSON.
       let parsed;
 
       try {
-        const jsonMatch = raw.match(/\{[\s\S]*\}/);
-        parsed = JSON.parse(jsonMatch?.[0] || "");
+        const match = raw.match(/\{[\s\S]*\}/);
+        parsed = JSON.parse(match?.[0] || "");
       } catch {
         parsed = {
           score: 5,
@@ -145,7 +148,7 @@ Do NOT return anything except JSON.
 
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
