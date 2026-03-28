@@ -23,7 +23,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Type is required" }, { status: 400 });
     }
 
-    // 🔥 GENERATE MULTIPLE QUESTIONS
+    // 🔥 GENERATE QUESTIONS
     if (type === "generate") {
       if (!role || !difficulty) {
         return NextResponse.json(
@@ -34,7 +34,6 @@ export async function POST(req: Request) {
 
       const total = count || 5;
 
-      // 🎯 DOMAIN CONFIG (SCALABLE)
       const domainConfig: Record<string, string> = {
         Frontend: `
 Focus on:
@@ -45,66 +44,54 @@ Focus on:
 STRICT:
 - NO UI/UX design questions
 - NO system design
-- Focus on coding + concepts
 `,
 
         Backend: `
 Focus on:
 - Node.js, APIs, databases
-- Authentication, REST, server logic
+- Authentication, REST
 
 STRICT:
-- NO system design architecture questions
-- Focus on implementation + backend concepts
+- NO system design
 `,
 
         DSA: `
 Focus on:
 - Data structures and algorithms
-- Arrays, trees, graphs, dynamic programming
+- Arrays, trees, graphs, DP
 
 STRICT:
-- Must be problem-solving or coding questions
+- Must be coding/problem-solving
 `,
 
         Design: `
 Focus on:
 - System design
 - UI/UX design
-- Scalability, architecture, user experience
-
-ALLOW:
-- High-level thinking
-- Trade-offs
-- Real-world system questions
+- Scalability, architecture
 `,
 
         DevOps: `
 Focus on:
-- CI/CD pipelines
+- CI/CD
 - Docker, Kubernetes
-- Deployment, monitoring, scaling
-
-STRICT:
-- Focus on real-world infrastructure scenarios
-- Avoid pure theory
+- Deployment & monitoring
 `,
 
-  "Data Analyst": `
+        "Data Analyst": `
 Focus on:
 - SQL queries
-- Data cleaning and analysis
+- Data analysis
 - Statistics basics
-- Business insights
-
-STRICT:
-- Include practical scenarios
-- Avoid pure theory-only questions
 `,
       };
 
-      const domainInstruction =
-        domainConfig[role] || "General technical interview questions";
+      if (!domainConfig[role]) {
+        return NextResponse.json(
+          { error: "Invalid role" },
+          { status: 400 }
+        );
+      }
 
       const completion = await client.chat.completions.create({
         model: "llama-3.3-70b-versatile",
@@ -119,16 +106,16 @@ Generate ${total} interview questions.
 Domain: ${role}
 Difficulty: ${difficulty}
 
-${domainInstruction}
+${domainConfig[role]}
 
-General Rules:
-- Questions must be realistic and non-repetitive
+Rules:
+- Questions must be realistic
 - Cover DIFFERENT topics
-- Keep them concise
-- Avoid repeating same concept
+- Keep concise
+- No repetition
 
-Return ONLY a valid JSON array:
-["question1", "question2", ...]
+Return ONLY JSON array:
+["q1","q2","q3"]
             `,
           },
         ],
@@ -143,7 +130,7 @@ Return ONLY a valid JSON array:
         questions = JSON.parse(match?.[0] || "[]");
       } catch {
         return NextResponse.json(
-          { error: "Failed to parse questions" },
+          { error: "Parsing failed" },
           { status: 500 }
         );
       }
@@ -158,7 +145,7 @@ Return ONLY a valid JSON array:
       return NextResponse.json({ questions });
     }
 
-    // 🔥 EVALUATE ANSWER
+    // 🔥 EVALUATE
     if (type === "evaluate") {
       if (!question || !answer) {
         return NextResponse.json(
@@ -173,32 +160,17 @@ Return ONLY a valid JSON array:
           {
             role: "system",
             content: `
-You are a senior technical interviewer evaluating a candidate.
-
 Return ONLY JSON:
 {
-  "score": number (0-10),
-  "expected": "A strong ideal answer",
-  "feedback": "What was good, what was missing, and how to improve"
+  "score": number,
+  "expected": "ideal answer",
+  "feedback": "what was good + improvements"
 }
-
-Scoring Guide:
-- 9-10: Excellent
-- 7-8: Good
-- 5-6: Average
-- 3-4: Weak
-- 0-2: Incorrect
-
-Feedback Rules:
-- Be constructive
-- Mention strengths
-- Mention missing points
-- Suggest improvements
             `,
           },
           {
             role: "user",
-            content: `Question: ${question}\nAnswer: ${answer}`,
+            content: `Q: ${question}\nA: ${answer}`,
           },
         ],
       });
@@ -222,9 +194,9 @@ Feedback Rules:
     }
 
     return NextResponse.json({ error: "Invalid type" }, { status: 400 });
-  } catch (err) {
-    console.error("AI Route Error:", err);
 
+  } catch (err) {
+    console.error(err);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
