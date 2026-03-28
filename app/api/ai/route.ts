@@ -34,6 +34,78 @@ export async function POST(req: Request) {
 
       const total = count || 5;
 
+      // 🎯 DOMAIN CONFIG (SCALABLE)
+      const domainConfig: Record<string, string> = {
+        Frontend: `
+Focus on:
+- JavaScript (closures, async/await, promises)
+- React (hooks, state, lifecycle)
+- DOM, browser behavior
+
+STRICT:
+- NO UI/UX design questions
+- NO system design
+- Focus on coding + concepts
+`,
+
+        Backend: `
+Focus on:
+- Node.js, APIs, databases
+- Authentication, REST, server logic
+
+STRICT:
+- NO system design architecture questions
+- Focus on implementation + backend concepts
+`,
+
+        DSA: `
+Focus on:
+- Data structures and algorithms
+- Arrays, trees, graphs, dynamic programming
+
+STRICT:
+- Must be problem-solving or coding questions
+`,
+
+        Design: `
+Focus on:
+- System design
+- UI/UX design
+- Scalability, architecture, user experience
+
+ALLOW:
+- High-level thinking
+- Trade-offs
+- Real-world system questions
+`,
+
+        DevOps: `
+Focus on:
+- CI/CD pipelines
+- Docker, Kubernetes
+- Deployment, monitoring, scaling
+
+STRICT:
+- Focus on real-world infrastructure scenarios
+- Avoid pure theory
+`,
+
+  "Data Analyst": `
+Focus on:
+- SQL queries
+- Data cleaning and analysis
+- Statistics basics
+- Business insights
+
+STRICT:
+- Include practical scenarios
+- Avoid pure theory-only questions
+`,
+      };
+
+      const domainInstruction =
+        domainConfig[role] || "General technical interview questions";
+
       const completion = await client.chat.completions.create({
         model: "llama-3.3-70b-versatile",
         messages: [
@@ -42,17 +114,20 @@ export async function POST(req: Request) {
             content: `
 You are a senior technical interviewer.
 
-Generate ${total} high-quality interview questions.
+Generate ${total} interview questions.
 
-Rules:
-- Domain: ${role}
-- Difficulty: ${difficulty}
+Domain: ${role}
+Difficulty: ${difficulty}
+
+${domainInstruction}
+
+General Rules:
 - Questions must be realistic and non-repetitive
-- Cover different concepts
+- Cover DIFFERENT topics
 - Keep them concise
-- Do NOT include answers or explanations
+- Avoid repeating same concept
 
-Return ONLY a JSON array:
+Return ONLY a valid JSON array:
 ["question1", "question2", ...]
             `,
           },
@@ -83,7 +158,7 @@ Return ONLY a JSON array:
       return NextResponse.json({ questions });
     }
 
-    // 🔥 EVALUATE ANSWER (same but improved clarity)
+    // 🔥 EVALUATE ANSWER
     if (type === "evaluate") {
       if (!question || !answer) {
         return NextResponse.json(
@@ -107,14 +182,18 @@ Return ONLY JSON:
   "feedback": "What was good, what was missing, and how to improve"
 }
 
-Scoring:
+Scoring Guide:
 - 9-10: Excellent
 - 7-8: Good
 - 5-6: Average
 - 3-4: Weak
 - 0-2: Incorrect
 
-Be constructive and specific.
+Feedback Rules:
+- Be constructive
+- Mention strengths
+- Mention missing points
+- Suggest improvements
             `,
           },
           {
