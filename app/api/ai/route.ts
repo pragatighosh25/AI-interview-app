@@ -14,10 +14,7 @@ export async function POST(req: Request) {
     const session = await getServerSession(authOptions);
 
     if (!session) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const body = await req.json();
@@ -25,10 +22,7 @@ export async function POST(req: Request) {
 
     // ❌ basic validation
     if (!type) {
-      return NextResponse.json(
-        { error: "Type is required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Type is required" }, { status: 400 });
     }
 
     // 🔥 GENERATE QUESTION
@@ -36,7 +30,7 @@ export async function POST(req: Request) {
       if (!role || !difficulty) {
         return NextResponse.json(
           { error: "Missing role or difficulty" },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
@@ -45,23 +39,31 @@ export async function POST(req: Request) {
         messages: [
           {
             role: "system",
-            content:
-              "You are an expert interviewer. Ask ONE concise technical interview question. Only return the question text.",
-          },
-          {
-            role: "user",
-            content: `Generate one ${difficulty} level ${role} interview question.`,
+            content: `
+You are a senior technical interviewer.
+
+Generate exactly ONE high-quality interview question.
+
+Rules:
+- Domain: ${role}
+- Difficulty: ${difficulty}
+- The question should be realistic and asked in real interviews
+- Do NOT include explanation or answer
+- Keep it concise but meaningful
+- Avoid generic or vague questions
+
+Return ONLY the question text.
+      `,
           },
         ],
       });
 
-      const question =
-        completion?.choices?.[0]?.message?.content?.trim();
+      const question = completion?.choices?.[0]?.message?.content?.trim();
 
       if (!question) {
         return NextResponse.json(
           { error: "AI failed to generate question" },
-          { status: 500 }
+          { status: 500 },
         );
       }
 
@@ -73,7 +75,7 @@ export async function POST(req: Request) {
       if (!question || !answer) {
         return NextResponse.json(
           { error: "Missing question or answer" },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
@@ -83,13 +85,34 @@ export async function POST(req: Request) {
           {
             role: "system",
             content: `
-Return ONLY JSON:
+You are a senior technical interviewer evaluating a candidate.
+
+Evaluate the answer strictly.
+
+Return ONLY JSON in this format:
 {
-  "score": number,
-  "expected": "string",
-  "feedback": "string"
+  "score": number (0-10),
+  "expected": "A strong ideal answer to the question",
+  "feedback": "Detailed feedback including: 
+    - what was correct
+    - what was missing
+    - how it could be improved"
 }
-`,
+
+Scoring Guidelines:
+- 9-10: Excellent, nearly perfect
+- 7-8: Good, minor gaps
+- 5-6: Average, missing key points
+- 3-4: Weak understanding
+- 0-2: Incorrect or irrelevant
+
+Feedback Rules:
+- Be constructive, not harsh
+- Mention specific improvements
+- Keep it clear and useful
+
+Do NOT return anything except JSON.
+      `,
           },
           {
             role: "user",
@@ -116,18 +139,13 @@ Return ONLY JSON:
       return NextResponse.json({ result: parsed });
     }
 
-    // ❌ invalid type
-    return NextResponse.json(
-      { error: "Invalid type" },
-      { status: 400 }
-    );
-
+    return NextResponse.json({ error: "Invalid type" }, { status: 400 });
   } catch (err) {
     console.error("AI Route Error:", err);
 
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
