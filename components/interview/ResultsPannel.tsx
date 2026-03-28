@@ -33,7 +33,7 @@ export default function ResultsPanel() {
             item &&
             typeof item.question === "string" &&
             item.result &&
-            typeof item.result.score === "number"
+            typeof item.result.score === "number",
         );
 
         setData(safeData);
@@ -48,12 +48,10 @@ export default function ResultsPanel() {
 
   const total = data.reduce(
     (acc: number, item: any) => acc + (item.result.score || 0),
-    0
+    0,
   );
 
-  const avg = data.length
-    ? Number((total / data.length).toFixed(1))
-    : 0;
+  const avg = data.length ? Number((total / data.length).toFixed(1)) : 0;
 
   const getRemark = () => {
     if (avg >= 8) return "Excellent, You're interview ready!";
@@ -69,7 +67,7 @@ export default function ResultsPanel() {
 
   // ✅ SAVE SESSION (GUARDED)
   const saveSession = async () => {
-    if (!data.length) return; 
+    if (!data.length) return;
 
     try {
       setSaving(true);
@@ -77,6 +75,9 @@ export default function ResultsPanel() {
 
       const res = await fetch("/api/interview", {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
           score: avg,
           type,
@@ -95,7 +96,6 @@ export default function ResultsPanel() {
       if (!res.ok) {
         throw new Error(json?.error || "Failed to save session");
       }
-
     } catch (err: any) {
       console.error(err);
       setSaveError(err.message || "Failed to save results");
@@ -122,23 +122,14 @@ export default function ResultsPanel() {
 
   return (
     <div className="space-y-8">
-      
       <div className="glass border border-border rounded-2xl p-8 text-center">
-        <h1 className="text-3xl font-bold mb-2">
-          Final Result
-        </h1>
+        <h1 className="text-3xl font-bold mb-2">Final Result</h1>
 
-        <p className="text-sm text-muted-foreground mb-4">
-          {type} Interview
-        </p>
+        <p className="text-sm text-muted-foreground mb-4">{type} Interview</p>
 
-        <p className="text-5xl font-bold gradient-text mb-4">
-          {avg} / 10
-        </p>
+        <p className="text-5xl font-bold gradient-text mb-4">{avg} / 10</p>
 
-        <p className="text-muted-foreground mb-6">
-          {getRemark()}
-        </p>
+        <p className="text-muted-foreground mb-6">{getRemark()}</p>
 
         {saving && (
           <p className="text-xs text-muted-foreground mb-2 animate-pulse">
@@ -169,9 +160,7 @@ export default function ResultsPanel() {
       </div>
 
       <div className="glass border border-border rounded-2xl p-6 space-y-4">
-        <h2 className="text-xl font-semibold mb-2">
-          Breakdown
-        </h2>
+        <h2 className="text-xl font-semibold mb-2">Breakdown</h2>
 
         {data.length === 0 ? (
           <p className="text-sm text-muted-foreground">
@@ -195,7 +184,7 @@ export default function ResultsPanel() {
 
               <span
                 className={`text-sm font-semibold ${getScoreColor(
-                  item.result.score
+                  item.result.score,
                 )}`}
               >
                 {item.result.score}/10
