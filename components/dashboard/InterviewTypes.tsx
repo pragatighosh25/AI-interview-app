@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Code, Database, BarChart3, Palette, Server, ChevronDown } from "lucide-react";
+import { Code, Database, BarChart3, Palette, Server, ChevronDown, FileText } from "lucide-react";
 
 const types = [
   { name: "Frontend", icon: Code },
@@ -10,6 +10,7 @@ const types = [
   { name: "Data Analyst", icon: BarChart3 },
   { name: "Design", icon: Palette },
   { name: "DevOps", icon: Database },
+  { name: "Resume", icon: FileText },
 ];
 
 function Dropdown({
@@ -79,6 +80,10 @@ export default function InterviewTypes() {
   const [count, setCount] = useState("5 Questions");
 
   const startInterview = (type: string) => {
+    if (type === "Resume") {
+    router.push("/resume"); // 🆕 new page
+    return;
+  }
     const countNumber = Number(count.split(" ")[0]);
 
     router.push(

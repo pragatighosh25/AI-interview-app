@@ -17,88 +17,92 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { type, question, answer, role, difficulty, count } = body;
+    const { type, question, answer, role, difficulty, count,resumeText } = body;
 
     if (!type) {
       return NextResponse.json({ error: "Type is required" }, { status: 400 });
     }
 
     // 🔥 GENERATE QUESTIONS
-    if (type === "generate") {
-      if (!role || !difficulty) {
-        return NextResponse.json(
-          { error: "Missing role or difficulty" },
-          { status: 400 }
-        );
-      }
+if (type === "generate") {
+  const total = count || 5;
 
-      const total = count || 5;
+  // 🆕 RESUME-BASED QUESTIONS FIRST
+  if (resumeText) {
+    const completion = await client.chat.completions.create({
+      model: "llama-3.3-70b-versatile",
+      messages: [
+        {
+          role: "system",
+          content: `
+You are a senior technical interviewer.
 
-      const domainConfig: Record<string, string> = {
-        Frontend: `
-Focus on:
-- JavaScript (closures, async/await, promises)
-- React (hooks, state, lifecycle)
-- DOM, browser behavior
+Based on the candidate's resume below, generate ${total} personalized interview questions.
 
-STRICT:
-- NO UI/UX design questions
-- NO system design
-`,
+Resume:
+${resumeText}
 
-        Backend: `
-Focus on:
-- Node.js, APIs, databases
-- Authentication, REST
+Rules:
+- Focus on projects, skills, and technologies mentioned
+- Ask practical and scenario-based questions
+- Mix difficulty levels
+- No generic questions
+- No repetition
 
-STRICT:
-- NO system design
-`,
+Return ONLY JSON array:
+["q1","q2","q3"]
+          `,
+        },
+      ],
+    });
 
-        DSA: `
-Focus on:
-- Data structures and algorithms
-- Arrays, trees, graphs, DP
+    const raw = completion.choices[0].message.content || "";
 
-STRICT:
-- Must be coding/problem-solving
-`,
+    let questions: string[] = [];
 
-        Design: `
-Focus on:
-- System design
-- UI/UX design
-- Scalability, architecture
-`,
+    try {
+      const match = raw.match(/\[[\s\S]*\]/);
+      questions = JSON.parse(match?.[0] || "[]");
+    } catch {
+      return NextResponse.json(
+        { error: "Parsing failed" },
+        { status: 500 }
+      );
+    }
 
-        DevOps: `
-Focus on:
-- CI/CD
-- Docker, Kubernetes
-- Deployment & monitoring
-`,
+    return NextResponse.json({ questions });
+  }
 
-        "Data Analyst": `
-Focus on:
-- SQL queries
-- Data analysis
-- Statistics basics
-`,
-      };
+  // 🔽 NORMAL ROLE FLOW (only if NOT resume)
+  if (!role || !difficulty) {
+    return NextResponse.json(
+      { error: "Missing role or difficulty" },
+      { status: 400 }
+    );
+  }
 
-      if (!domainConfig[role]) {
-        return NextResponse.json(
-          { error: "Invalid role" },
-          { status: 400 }
-        );
-      }
+  const domainConfig: Record<string, string> = {
+    Frontend: `...`,
+    Backend: `...`,
+    DSA: `...`,
+    Design: `...`,
+    DevOps: `...`,
+    "Data Analyst": `...`,
+  };
 
-      const completion = await client.chat.completions.create({
-        model: "llama-3.3-70b-versatile",
-        messages: [
-          {
-            role: "system",
-            content: `
+  if (!domainConfig[role]) {
+    return NextResponse.json(
+      { error: "Invalid role" },
+      { status: 400 }
+    );
+  }
+
+  const completion = await client.chat.completions.create({
+    model: "llama-3.3-70b-versatile",
+    messages: [
+      {
+        role: "system",
+        content: `
 You are a senior technical interviewer.
 
 Generate ${total} interview questions.
@@ -116,34 +120,34 @@ Rules:
 
 Return ONLY JSON array:
 ["q1","q2","q3"]
-            `,
-          },
-        ],
-      });
+        `,
+      },
+    ],
+  });
 
-      const raw = completion.choices[0].message.content || "";
+  const raw = completion.choices[0].message.content || "";
 
-      let questions: string[] = [];
+  let questions: string[] = [];
 
-      try {
-        const match = raw.match(/\[[\s\S]*\]/);
-        questions = JSON.parse(match?.[0] || "[]");
-      } catch {
-        return NextResponse.json(
-          { error: "Parsing failed" },
-          { status: 500 }
-        );
-      }
+  try {
+    const match = raw.match(/\[[\s\S]*\]/);
+    questions = JSON.parse(match?.[0] || "[]");
+  } catch {
+    return NextResponse.json(
+      { error: "Parsing failed" },
+      { status: 500 }
+    );
+  }
 
-      if (!questions.length) {
-        return NextResponse.json(
-          { error: "No questions generated" },
-          { status: 500 }
-        );
-      }
+  if (!questions.length) {
+    return NextResponse.json(
+      { error: "No questions generated" },
+      { status: 500 }
+    );
+  }
 
-      return NextResponse.json({ questions });
-    }
+  return NextResponse.json({ questions });
+}
 
     // 🔥 EVALUATE
     if (type === "evaluate") {

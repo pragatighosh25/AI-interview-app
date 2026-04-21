@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 const STORAGE_KEY = "interview_state";
 
@@ -16,6 +16,8 @@ export default function InterviewPanel({
   totalQuestions: number;
 }) {
   const router = useRouter();
+  const params = useSearchParams();
+  const resumeText = params.get("resume");
 
   const [questions, setQuestions] = useState<string[]>([]);
   const [question, setQuestion] = useState("");
@@ -35,10 +37,10 @@ export default function InterviewPanel({
 
   useEffect(() => setHydrated(true), []);
 
-  // 🔥 RESET when domain changes
+  // 🔥 RESET when type/difficulty/resume changes
   useEffect(() => {
     localStorage.removeItem(STORAGE_KEY);
-  }, [type, difficulty]);
+  }, [type, difficulty, resumeText]);
 
   // 🔥 GENERATE QUESTIONS
   useEffect(() => {
@@ -53,7 +55,8 @@ export default function InterviewPanel({
         if (
           parsed?.questions?.length &&
           parsed?.type === type &&
-          parsed?.difficulty === difficulty
+          parsed?.difficulty === difficulty &&
+          parsed?.resumeText === resumeText // ✅ FIX
         ) {
           setQuestions(parsed.questions);
           setQuestion(parsed.questions[parsed.step - 1]);
@@ -67,7 +70,7 @@ export default function InterviewPanel({
     }
 
     generateQuestions();
-  }, [type, difficulty, hydrated]);
+  }, [type, difficulty, hydrated, resumeText]);
 
   // 🔥 SAVE STATE
   useEffect(() => {
@@ -81,9 +84,10 @@ export default function InterviewPanel({
         sessionData,
         type,
         difficulty,
+        resumeText, // ✅ FIX
       })
     );
-  }, [questions, step, sessionData]);
+  }, [questions, step, sessionData, resumeText]);
 
   const generateQuestions = async () => {
     try {
@@ -97,9 +101,10 @@ export default function InterviewPanel({
         },
         body: JSON.stringify({
           type: "generate",
-          role: type,
+          role: resumeText ? null : type, // ✅ FIX
           difficulty,
           count: totalQuestions,
+          resumeText: resumeText || null,
         }),
       });
 
@@ -156,10 +161,10 @@ export default function InterviewPanel({
       localStorage.removeItem(STORAGE_KEY);
 
       router.push(
-  `/interview/result?type=${type}&data=${encodeURIComponent(
-    JSON.stringify(sessionData)
-  )}`
-);
+        `/interview/result?type=${type}&data=${encodeURIComponent(
+          JSON.stringify(sessionData)
+        )}`
+      );
       return;
     }
 
@@ -173,79 +178,82 @@ export default function InterviewPanel({
 
   if (!hydrated) return null;
 
-  
-    return (
-  <div className="max-w-3xl mx-auto space-y-6">
-    
-    {/* HEADER */}
-    <div className="flex justify-between text-sm text-muted-foreground">
-      <span>
-        {type} • {difficulty} ({step}/{totalQuestions})
-      </span>
-      <span>{result ? `${result.score}/10` : "--"}</span>
-    </div>
+  return (
+    <div className="max-w-3xl mx-auto space-y-6">
 
-    {/* QUESTION CARD */}
-    <div className="bg-muted/30 border border-border rounded-2xl p-6">
-      <h2 className="text-lg font-semibold leading-relaxed">
-        {generating ? "Generating question..." : question}
-      </h2>
-    </div>
-
-    {/* ANSWER INPUT */}
-    <div className="space-y-2">
-      <label className="text-sm text-muted-foreground">
-        Your Answer
-      </label>
-
-      <textarea
-        value={userAnswer}
-        onChange={(e) => setUserAnswer(e.target.value)}
-        placeholder="Write your answer here..."
-        className="w-full h-32 p-4 rounded-xl bg-background border border-border focus:outline-none focus:ring-2 focus:ring-purple-500 custom-scroll resize-none overflow-y-auto"
-      />
-    </div>
-
-    {/* SUBMIT BUTTON */}
-    {!submitted && (
-      <Button
-        onClick={evaluateAnswer}
-        disabled={!userAnswer.trim()}
-        className="w-full"
-      >
-        {evaluating ? "Evaluating..." : "Submit Answer"}
-      </Button>
-    )}
-
-    {/* RESULT SECTION */}
-    {submitted && result && (
-      <div className="space-y-4">
-        
-        {/* EXPECTED */}
-        <div className="bg-muted/20 border border-border rounded-xl p-4">
-          <p className="text-sm text-muted-foreground mb-1">
-            Expected Answer
-          </p>
-          <p className="text-sm">{result.expected}</p>
-        </div>
-
-        {/* FEEDBACK */}
-        <div className="bg-muted/20 border border-border rounded-xl p-4">
-          <p className="text-sm text-muted-foreground mb-1">
-            Feedback
-          </p>
-          <p className="text-sm leading-relaxed">
-            {result.feedback}
-          </p>
-        </div>
-
-        {/* NEXT BUTTON */}
-        <Button onClick={handleNext} className="w-full">
-          {step === totalQuestions ? "Finish Interview" : "Next Question"}
-        </Button>
+      {/* HEADER */}
+      <div className="flex justify-between text-sm text-muted-foreground">
+        <span>
+          {type === "resume" ? "Resume Interview" : type} • {difficulty} ({step}/{totalQuestions})
+        </span>
+        <span>{result ? `${result.score}/10` : "--"}</span>
       </div>
-    )}
-  </div>
-);
-  
+
+      {/* QUESTION CARD */}
+      <div className="bg-muted/30 border border-border rounded-2xl p-6">
+        <h2 className="text-lg font-semibold leading-relaxed">
+          {generating ? "Generating question..." : question}
+        </h2>
+      </div>
+
+      {/* ANSWER INPUT */}
+      <div className="space-y-2">
+        <label className="text-sm text-muted-foreground">
+          Your Answer
+        </label>
+
+        <textarea
+          value={userAnswer}
+          onChange={(e) => setUserAnswer(e.target.value)}
+          placeholder="Write your answer here..."
+          className="w-full h-32 p-4 rounded-xl bg-background border border-border focus:outline-none focus:ring-2 focus:ring-purple-500 custom-scroll resize-none overflow-y-auto"
+        />
+      </div>
+
+      {/* SUBMIT BUTTON */}
+      {!submitted && (
+        <Button
+          onClick={evaluateAnswer}
+          disabled={!userAnswer.trim()}
+          className="w-full"
+        >
+          {evaluating ? "Evaluating..." : "Submit Answer"}
+        </Button>
+      )}
+
+      {/* RESULT SECTION */}
+      {submitted && result && (
+        <div className="space-y-4">
+
+          {/* EXPECTED */}
+          <div className="bg-muted/20 border border-border rounded-xl p-4">
+            <p className="text-sm text-muted-foreground mb-1">
+              Expected Answer
+            </p>
+            <p className="text-sm">{result.expected}</p>
+          </div>
+
+          {/* FEEDBACK */}
+          <div className="bg-muted/20 border border-border rounded-xl p-4">
+            <p className="text-sm text-muted-foreground mb-1">
+              Feedback
+            </p>
+            <p className="text-sm leading-relaxed">
+              {result.feedback}
+            </p>
+          </div>
+
+          {/* NEXT BUTTON */}
+          <Button onClick={handleNext} className="w-full">
+            {step === totalQuestions ? "Finish Interview" : "Next Question"}
+          </Button>
+        </div>
+      )}
+
+      {/* ERROR */}
+      {error && (
+        <p className="text-red-500 text-sm">{error}</p>
+      )}
+    </div>
+  );
 }
