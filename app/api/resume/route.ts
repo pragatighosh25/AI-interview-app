@@ -2,7 +2,7 @@ export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
 
-const pdfParse = require("pdf-parse-new");
+const PDFParser = require("pdf2json");
 
 export async function POST(req: Request) {
   try {
@@ -18,11 +18,24 @@ export async function POST(req: Request) {
 
     const buffer = Buffer.from(await file.arrayBuffer());
 
-    const data = await pdfParse(buffer);
+    const pdfParser = new PDFParser();
 
-    const cleaned = data.text
-      ?.replace(/\s+/g, " ")
-      ?.trim();
+    const text = await new Promise<string>((resolve, reject) => {
+      pdfParser.on("pdfParser_dataError", (errData: any) => {
+        reject(errData.parserError);
+      });
+
+      pdfParser.on("pdfParser_dataReady", () => {
+        const rawText = pdfParser.getRawTextContent();
+        resolve(rawText);
+      });
+
+      pdfParser.parseBuffer(buffer);
+    });
+
+    const cleaned = text
+      .replace(/\s+/g, " ")
+      .trim();
 
     if (!cleaned) {
       return NextResponse.json(
@@ -41,7 +54,6 @@ export async function POST(req: Request) {
     return NextResponse.json(
       {
         error: "Failed to parse PDF",
-        details: err?.message || "Unknown error",
       },
       { status: 500 }
     );

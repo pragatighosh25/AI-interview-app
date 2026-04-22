@@ -16,8 +16,11 @@ export default function InterviewPanel({
   totalQuestions: number;
 }) {
   const router = useRouter();
-  const params = useSearchParams();
-  const resumeText = params.get("resume");
+
+const resumeText =
+  typeof window !== "undefined"
+    ? sessionStorage.getItem("resumeText")
+    : null;
 
   const [questions, setQuestions] = useState<string[]>([]);
   const [question, setQuestion] = useState("");
