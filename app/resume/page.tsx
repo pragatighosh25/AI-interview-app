@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import pdfToText from "react-pdftotext";
 
 export default function ResumePage() {
   const [file, setFile] = useState<File | null>(null);
@@ -11,37 +10,36 @@ export default function ResumePage() {
   const router = useRouter();
 
   const handleUpload = async () => {
-    if (!file) {
-      alert("Please upload a PDF resume");
+  if (!file) {
+    alert("Please upload a PDF resume");
+    return;
+  }
+
+  try {
+    setLoading(true);
+
+    // ✅ dynamic import only on client side
+    const pdfToText = (await import("react-pdftotext")).default;
+
+    const extractedText = await pdfToText(file);
+
+    if (!extractedText?.trim()) {
+      alert("Could not extract text from PDF");
       return;
     }
 
-    try {
-      setLoading(true);
+    sessionStorage.setItem("resumeText", extractedText);
 
-      // ✅ Extract text directly from PDF in frontend
-      const extractedText = await pdfToText(file);
-
-      if (!extractedText?.trim()) {
-        alert("Could not extract text from PDF");
-        setLoading(false);
-        return;
-      }
-
-      // ✅ Store in sessionStorage instead of huge URL params
-      sessionStorage.setItem("resumeText", extractedText);
-
-      // 🚀 Redirect to interview page
-      router.push(
-        "/interview?type=resume&difficulty=Medium&count=5"
-      );
-    } catch (err) {
-      console.error(err);
-      alert("Failed to process PDF");
-    } finally {
-      setLoading(false);
-    }
-  };
+    router.push(
+      "/interview?type=resume&difficulty=Medium&count=5"
+    );
+  } catch (err) {
+    console.error(err);
+    alert("Failed to process PDF");
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="max-w-xl mx-auto mt-20 space-y-6 text-center">
