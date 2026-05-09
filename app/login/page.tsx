@@ -151,7 +151,7 @@ export default function LoginPage() {
               </div>
 
               <Button type="submit" disabled={loading}
-                className="w-full bg-gradient-to-r from-purple-600 to-cyan-500 text-white
+                className="w-full bg-linear-to-r from-purple-600 to-cyan-500 text-white
                 hover:opacity-90 transition-opacity disabled:opacity-50 gap-2">
                 {loading
                   ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Signing in...</>
@@ -179,7 +179,7 @@ export default function LoginPage() {
               </div>
 
               <Button type="submit" disabled={loading}
-                className="w-full bg-gradient-to-r from-purple-600 to-cyan-500 text-white
+                className="w-full bg-linear-to-r from-purple-600 to-cyan-500 text-white
                 hover:opacity-90 transition-opacity disabled:opacity-50 gap-2">
                 {loading
                   ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Sending OTP...</>
@@ -207,7 +207,7 @@ export default function LoginPage() {
               </div>
 
               <Button type="submit" disabled={otp.length !== 6}
-                className="w-full bg-gradient-to-r from-purple-600 to-cyan-500 text-white
+                className="w-full bg-linear-to-r from-purple-600 to-cyan-500 text-white
                 hover:opacity-90 transition-opacity disabled:opacity-50 gap-2">
                 Verify OTP <ChevronRight size={15} />
               </Button>
@@ -241,7 +241,7 @@ export default function LoginPage() {
               </div>
 
               <Button type="submit" disabled={loading}
-                className="w-full bg-gradient-to-r from-purple-600 to-cyan-500 text-white
+                className="w-full bg-linear-to-r from-purple-600 to-cyan-500 text-white
                 hover:opacity-90 transition-opacity disabled:opacity-50 gap-2">
                 {loading
                   ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Resetting...</>
@@ -261,8 +261,8 @@ export default function LoginPage() {
 
       {/* ── Right: Visual panel ── */}
       <div className="hidden lg:flex flex-1 items-center justify-center relative overflow-hidden bg-muted/10">
-        <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[500px] h-[300px] bg-purple-600/20 blur-[120px]" />
-        <div className="absolute bottom-10 right-10 w-[300px] h-[200px] bg-cyan-500/20 blur-[100px]" />
+        <div className="absolute top-20 left-1/2 -translate-x-1/2 w-125 h-75 bg-purple-600/20 blur-[120px]" />
+        <div className="absolute bottom-10 right-10 w-75 h-50 bg-cyan-500/20 blur-[100px]" />
 
         <div className="relative z-10 flex flex-col items-center text-center px-10 gap-8">
           <div className="space-y-2">
@@ -281,7 +281,7 @@ export default function LoginPage() {
               <span className="text-xs text-muted-foreground">5/5 questions</span>
             </div>
             <div className="flex items-center gap-4">
-              <div className="relative w-16 h-16 flex-shrink-0">
+              <div className="relative w-16 h-16 shrink-0">
                 <svg viewBox="0 0 60 60" className="w-full h-full -rotate-90">
                   <circle cx="30" cy="30" r="24" fill="none" stroke="#ffffff10" strokeWidth="6" />
                   <circle cx="30" cy="30" r="24" fill="none" stroke="#4ade80" strokeWidth="6"

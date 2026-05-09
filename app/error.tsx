@@ -17,7 +17,7 @@ export default function Error({
       <div className="glass border border-border rounded-2xl p-8 text-center space-y-4 max-w-md">
         
         <h1 className="text-2xl font-bold">
-          Something broke 😭
+          Something broke 
         </h1>
 
         <p className="text-sm text-muted-foreground">
@@ -26,7 +26,7 @@ export default function Error({
 
         <Button
           onClick={() => reset()}
-          className="bg-gradient-to-r from-purple-600 to-cyan-500 text-white"
+          className="bg-linear-to-r from-purple-600 to-cyan-500 text-white"
         >
           Try Again
         </Button>

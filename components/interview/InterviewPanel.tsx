@@ -293,7 +293,7 @@ export default function InterviewPanel({
         </div>
         <div className="h-1.5 bg-muted/40 rounded-full overflow-hidden">
           <div
-            className="h-full bg-gradient-to-r from-purple-500 to-cyan-500 rounded-full transition-all duration-500"
+            className="h-full bg-linear-to-r from-purple-500 to-cyan-500 rounded-full transition-all duration-500"
             style={{ width: `${progress}%` }}
           />
         </div>

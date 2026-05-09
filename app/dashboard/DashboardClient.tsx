@@ -63,7 +63,7 @@ export default function DashboardClient() {
       </div>
       <Link
         href="#interview-types"
-        className="px-5 py-2.5 rounded-full bg-gradient-to-r from-purple-600 to-cyan-500 
+        className="px-5 py-2.5 rounded-full bg-linear-to-r from-purple-600 to-cyan-500 
         text-white text-sm font-medium hover:opacity-90 transition-opacity"
       >
         Start an interview
@@ -77,7 +77,7 @@ export default function DashboardClient() {
       {/* Graph — receives shared data, no extra fetch */}
       <div className="lg:col-span-2">
         {loading
-          ? <div className="animate-pulse h-[320px] rounded-2xl bg-muted" />
+          ? <div className="animate-pulse h-80 rounded-2xl bg-muted" />
           : <ProgressChart data={data} />
         }
       </div>
@@ -85,7 +85,7 @@ export default function DashboardClient() {
       {/* History — receives shared data, no extra fetch */}
       <div>
         {loading
-          ? <div className="animate-pulse h-[320px] rounded-2xl bg-muted" />
+          ? <div className="animate-pulse h-80 rounded-2xl bg-muted" />
           : <History data={data} />   // ← pass data as prop
         }
       </div>

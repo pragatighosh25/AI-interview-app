@@ -53,12 +53,12 @@ function QuestionCard({ item, index }: { item: any; index: number }) {
         hover:bg-muted/20 transition-colors text-left"
       >
         <div className="flex items-start gap-3 flex-1 min-w-0">
-          <span className="text-xs text-muted-foreground mt-0.5 flex-shrink-0">
+          <span className="text-xs text-muted-foreground mt-0.5 shrink-0">
             Q{index + 1}
           </span>
           <p className="text-sm font-medium leading-snug line-clamp-2">{item.question}</p>
         </div>
-        <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="flex items-center gap-2 shrink-0">
           <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${color}`}>
             {score}/10
           </span>

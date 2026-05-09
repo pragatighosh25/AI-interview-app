@@ -48,7 +48,7 @@ export default function Hero() {
           <Button
             onClick={handleStart}
             disabled={status === "loading"}
-            className="btn-glow bg-gradient-to-r from-purple-600 to-cyan-500 text-white
+            className="btn-glow bg-linear-to-r from-purple-600 to-cyan-500 text-white
               px-6 py-5 text-sm font-medium flex items-center gap-2 hover:opacity-90 transition-opacity"
           >
             {status === "loading" ? "Loading..." : session ? "Go to Dashboard" : "Start for free"}
