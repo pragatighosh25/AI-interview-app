@@ -1,11 +1,13 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, Suspense } from "react";
 import { useRouter } from "next/navigation";
 import { FileText, Upload, X, ArrowRight, Sparkles } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 
-export default function ResumePage() {
+export const dynamic = "force-dynamic";
+
+function ResumeContent() {
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [dragging, setDragging] = useState(false);
@@ -204,5 +206,12 @@ export default function ResumePage() {
         </button>
       </div>
     </main>
+  );
+}
+export default function ResumePage() {   
+  return (
+    <Suspense fallback={null}>
+      <ResumeContent />
+    </Suspense>
   );
 }
