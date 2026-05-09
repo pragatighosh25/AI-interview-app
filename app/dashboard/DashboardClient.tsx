@@ -66,7 +66,7 @@ export default function DashboardClient() {
         className="px-5 py-2.5 rounded-full bg-gradient-to-r from-purple-600 to-cyan-500 
         text-white text-sm font-medium hover:opacity-90 transition-opacity"
       >
-        Start an interview →
+        Start an interview
       </Link>
     </div>
   );

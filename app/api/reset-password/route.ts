@@ -4,32 +4,23 @@ import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
   try {
-    const { email, newPassword } = await req.json();
+    const { email, otp, newPassword } = await req.json();
 
-    if (!email || !newPassword) {
-      return NextResponse.json(
-        { error: "All fields required" },
-        { status: 400 }
-      );
-    }
+    if (!email || !otp || !newPassword)
+      return NextResponse.json({ error: "All fields required" }, { status: 400 });
 
-    if (newPassword.length < 6) {
-      return NextResponse.json(
-        { error: "Password must be at least 6 characters" },
-        { status: 400 }
-      );
-    }
+    if (newPassword.length < 6)
+      return NextResponse.json({ error: "Password must be at least 6 characters" }, { status: 400 });
 
-    const user = await prisma.user.findUnique({
-      where: { email: email.toLowerCase() },
+    const token = await prisma.otpToken.findFirst({
+      where: { email: email.toLowerCase(), code: otp },
     });
 
-    if (!user) {
-      return NextResponse.json(
-        { error: "User not found" },
-        { status: 404 }
-      );
-    }
+    if (!token)
+      return NextResponse.json({ error: "Invalid OTP" }, { status: 400 });
+
+    if (token.expiresAt < new Date())
+      return NextResponse.json({ error: "OTP expired" }, { status: 400 });
 
     const hashed = await bcrypt.hash(newPassword, 10);
 
@@ -38,14 +29,12 @@ export async function POST(req: Request) {
       data: { password: hashed },
     });
 
-    return NextResponse.json({ success: true });
+    // Clean up used OTP
+    await prisma.otpToken.deleteMany({ where: { email: email.toLowerCase() } });
 
+    return NextResponse.json({ success: true });
   } catch (err) {
     console.error("RESET PASSWORD ERROR:", err);
-
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

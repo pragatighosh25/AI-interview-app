@@ -4,18 +4,17 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   Code, Server, BarChart3, Palette,
-  Container, ChevronDown, FileText, ArrowRight
+  Container, ChevronDown, FileText, ChevronRight
 } from "lucide-react";
 
 const types = [
-  { name: "Frontend",     icon: Code,      gradient: "from-blue-500 to-cyan-400" },
-  { name: "Backend",      icon: Server,    gradient: "from-green-500 to-emerald-400" },
-  { name: "Data Analyst", icon: BarChart3, gradient: "from-yellow-500 to-orange-400" },
-  { name: "Design",       icon: Palette,   gradient: "from-pink-500 to-rose-400" },
-  { name: "DevOps",       icon: Container, gradient: "from-purple-500 to-violet-400" },
+  { name: "Frontend",     icon: Code,      gradient: "from-purple-500 to-purple-400" },
+  { name: "Backend",      icon: Server,    gradient: "from-purple-600 to-violet-400" },
+  { name: "Data Analyst", icon: BarChart3, gradient: "from-violet-500 to-purple-400" },
+  { name: "Design",       icon: Palette,   gradient: "from-purple-500 to-cyan-500"   },
+  { name: "DevOps",       icon: Container, gradient: "from-cyan-600 to-cyan-400"     },
   { name: "Resume",       icon: FileText,  gradient: "from-purple-600 to-cyan-500", isSpecial: true },
 ];
-
 function Dropdown({
   value,
   options,
@@ -169,7 +168,7 @@ export default function InterviewTypes() {
 
               {/* Hover arrow */}
               {!isLoading && (
-                <ArrowRight
+                <ChevronRight
                   className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5
                   text-muted-foreground opacity-0 group-hover:opacity-100
                   translate-x-1 group-hover:translate-x-0 transition-all duration-200"

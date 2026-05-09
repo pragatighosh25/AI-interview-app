@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { Menu, X, ChevronRight } from "lucide-react";
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -19,7 +20,35 @@ export default function Navbar() {
   }, []);
 
   const handleStart = () => router.push(session ? "/dashboard" : "/login");
-  const handleLogout = () => signOut({ callbackUrl: "/" });
+  const handleLogout = () => {
+  toast.custom((t) => (
+    <div className="bg-background border border-border rounded-2xl p-4 shadow-2xl w-[300px] space-y-3">
+      {/* Header */}
+      <div className="space-y-0.5">
+        <p className="text-sm font-semibold">Log out?</p>
+        <p className="text-xs text-muted-foreground">You'll need to sign in again to access your dashboard.</p>
+      </div>
+      {/* Actions */}
+      <div className="flex gap-2">
+        <button
+          onClick={() => toast.dismiss(t)}
+          className="flex-1 text-xs py-2 rounded-lg border border-border
+            text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors"
+        >
+          Stay
+        </button>
+        <button
+          onClick={() => { toast.dismiss(t); signOut({ callbackUrl: "/" }); }}
+          className="flex-1 text-xs py-2 rounded-lg font-medium
+            bg-gradient-to-r from-purple-600 to-cyan-500 text-white
+            hover:opacity-90 transition-opacity"
+        >
+          Log out
+        </button>
+      </div>
+    </div>
+  ), { duration: 5000 });
+};
 
   return (
     <>
