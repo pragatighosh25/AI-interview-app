@@ -5,169 +5,231 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { Eye, EyeOff, User, Mail, Lock, ArrowRight, ChevronRight } from "lucide-react";
 
 export default function SignupPage() {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
+  const [name, setName]         = useState("");
+  const [email, setEmail]       = useState("");
   const [password, setPassword] = useState("");
-
-  const [loading, setLoading] = useState(false); // ✅ NEW
-
+  const [showPass, setShowPass] = useState(false);
+  const [loading, setLoading]   = useState(false);
   const router = useRouter();
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-
     try {
-      setLoading(true); // ✅ start loading
-
+      setLoading(true);
       const res = await fetch("/api/signup", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, email, password }),
       });
-
-      // ✅ handle server errors properly
       if (!res.ok) {
-        let message = "Something went wrong";
-
-        try {
-          const data = await res.json();
-          message = data.error || message;
-        } catch {
-          // if JSON parsing fails
-        }
-
-        throw new Error(message);
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Something went wrong");
       }
-
-      // ✅ success
-      toast.success("Account created successfully! Please login.");
-
-      router.push("/login");;
-
+      toast.success("Account created! Please login.");
+      router.push("/login");
     } catch (err: any) {
-      console.error(err);
       toast.error(err.message || "Signup failed");
     } finally {
-      setLoading(false); // ✅ always stop loading
+      setLoading(false);
     }
   };
 
   return (
     <main className="min-h-screen flex">
-      
-      {/* Left */}
-      <div className="flex-1 flex items-center justify-center px-6">
-        <div className="w-full max-w-md space-y-6">
-          
-          <h1 className="text-3xl font-bold">Create account ✨</h1>
-          <p className="text-muted-foreground">
-            Start your AI interview journey today
-          </p>
+
+      {/* ── Left: Form ── */}
+      <div className="flex-1 flex items-center justify-center px-6 py-12">
+        <div className="w-full max-w-md space-y-8">
+
+          {/* Header */}
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 mb-6">
+              <span className="text-xl font-bold gradient-text">IntervueX</span>
+            </div>
+            <h1 className="text-3xl font-bold tracking-tight">Create your account</h1>
+            <p className="text-muted-foreground text-sm">
+              Start practicing. Land your dream job.
+            </p>
+          </div>
 
           {/* Form */}
           <form onSubmit={handleSignup} className="space-y-4">
-            
-            <input
-              type="text"
-              placeholder="Full Name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-              disabled={loading} // ✅ prevent edits during submit
-              className="w-full p-3 rounded-xl bg-muted border border-border focus:ring-2 focus:ring-primary outline-none disabled:opacity-50"
-            />
 
-            <input
-              type="email"
-              placeholder="Email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              disabled={loading}
-              className="w-full p-3 rounded-xl bg-muted border border-border focus:ring-2 focus:ring-primary outline-none disabled:opacity-50"
-            />
+            {/* Name */}
+            <div className="relative">
+              <User size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="Full name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+                disabled={loading}
+                className="w-full pl-10 pr-4 py-3 rounded-xl bg-muted/50 border border-border
+                focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50
+                outline-none disabled:opacity-50 text-sm transition-all"
+              />
+            </div>
 
-            <input
-              type="password"
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              disabled={loading}
-              className="w-full p-3 rounded-xl bg-muted border border-border focus:ring-2 focus:ring-primary outline-none disabled:opacity-50"
-            />
+            {/* Email */}
+            <div className="relative">
+              <Mail size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <input
+                type="email"
+                placeholder="Email address"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                disabled={loading}
+                className="w-full pl-10 pr-4 py-3 rounded-xl bg-muted/50 border border-border
+                focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50
+                outline-none disabled:opacity-50 text-sm transition-all"
+              />
+            </div>
+
+            {/* Password */}
+            <div className="relative">
+              <Lock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <input
+                type={showPass ? "text" : "password"}
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                disabled={loading}
+                className="w-full pl-10 pr-10 py-3 rounded-xl bg-muted/50 border border-border
+                focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50
+                outline-none disabled:opacity-50 text-sm transition-all"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPass(!showPass)}
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {showPass ? <EyeOff size={15} /> : <Eye size={15} />}
+              </button>
+            </div>
+
+            {/* Password strength hint */}
+            {password.length > 0 && (
+              <div className="flex gap-1.5 items-center">
+                {[...Array(3)].map((_, i) => (
+                  <div
+                    key={i}
+                    className={`h-1 flex-1 rounded-full transition-all duration-300 ${
+                      password.length > 10 ? "bg-green-400"
+                      : password.length > 6  ? i < 2 ? "bg-yellow-400" : "bg-muted"
+                      : i < 1 ? "bg-red-400" : "bg-muted"
+                    }`}
+                  />
+                ))}
+                <span className="text-xs text-muted-foreground ml-1">
+                  {password.length > 10 ? "Strong" : password.length > 6 ? "Fair" : "Weak"}
+                </span>
+              </div>
+            )}
 
             <Button
               type="submit"
-              disabled={loading} // ✅ prevent spam click
-              className="w-full btn-glow bg-gradient-to-r from-purple-600 to-cyan-500 text-white disabled:opacity-50"
+              disabled={loading}
+              className="w-full bg-gradient-to-r from-purple-600 to-cyan-500 text-white
+              hover:opacity-90 transition-opacity disabled:opacity-50 gap-2"
             >
-              {loading ? "Creating account..." : "Sign Up"} {/* ✅ dynamic text */}
+              {loading ? (
+                <>
+                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Creating account...
+                </>
+              ) : (
+                <>
+                  Get started free
+                  <ChevronRight size={15} />
+                </>
+              )}
             </Button>
           </form>
 
           <p className="text-sm text-muted-foreground text-center">
             Already have an account?{" "}
-            <Link href="/login" className="text-purple-400 hover:underline">
-              Login
+            <Link href="/login" className="text-purple-400 hover:underline font-medium">
+              Sign in
             </Link>
+          </p>
+
+          <p className="text-xs text-muted-foreground/60 text-center">
+            By signing up you agree to our Terms of Service and Privacy Policy.
           </p>
         </div>
       </div>
 
-      {/* Right */}
-      <div className="hidden lg:flex flex-1 items-center justify-center relative overflow-hidden">
-        
-        {/* Background gradients */}
-        <div className="absolute inset-0">
-          <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[500px] h-[300px] bg-purple-600/30 blur-[120px]" />
-          <div className="absolute bottom-10 right-10 w-[300px] h-[200px] bg-cyan-500/30 blur-[100px]" />
-        </div>
+      {/* ── Right: Visual panel ── */}
+      <div className="hidden lg:flex flex-1 items-center justify-center relative overflow-hidden bg-muted/10">
 
-        {/* Content */}
-        <div className="relative z-10 flex flex-col items-center text-center px-6">
-          
-          <h2 className="text-4xl font-bold mb-3 gradient-text">
-            IntervueX
-          </h2>
+        {/* Background glows */}
+        <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[500px] h-[300px] bg-purple-600/20 blur-[120px]" />
+        <div className="absolute bottom-10 right-10 w-[300px] h-[200px] bg-cyan-500/20 blur-[100px]" />
 
-          <p className="text-muted-foreground mb-8 max-w-sm">
-            Practice interviews with AI, track progress, and get real-time feedback.
-          </p>
+        <div className="relative z-10 flex flex-col items-center text-center px-10 gap-8">
 
-          {/* Mock Card */}
-          <div className="glass border border-border rounded-2xl p-5 w-[320px] card-glow animate-float">
-            
-            <div className="space-y-4">
-              
-              {/* Progress */}
-              <div>
-                <p className="text-xs text-muted-foreground mb-1">
-                  Progress
-                </p>
-                <div className="h-2 rounded-full bg-muted overflow-hidden">
-                  <div className="h-full w-3/4 bg-gradient-to-r from-purple-500 to-cyan-400" />
+          <div className="space-y-2">
+            <h2 className="text-4xl font-bold gradient-text">Practice smarter.</h2>
+            <h2 className="text-4xl font-bold text-foreground/40">Interview better.</h2>
+            <p className="text-muted-foreground text-sm mt-3 max-w-xs">
+              AI-powered mock interviews tailored to your resume and domain.
+            </p>
+          </div>
+
+          {/* Mock interview card */}
+          <div className="glass border border-border rounded-2xl p-5 w-[300px] card-glow animate-float space-y-4">
+
+            {/* Header */}
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-purple-400 bg-purple-400/10 px-2 py-0.5 rounded-full">
+                Frontend · Medium
+              </span>
+              <span className="text-xs text-muted-foreground">Q3/5</span>
+            </div>
+
+            {/* Fake question */}
+            <div className="bg-muted/30 rounded-xl p-3">
+              <p className="text-xs text-left leading-relaxed text-foreground/80">
+                Explain the difference between <span className="text-purple-400">useEffect</span> and <span className="text-cyan-400">useLayoutEffect</span> in React.
+              </p>
+            </div>
+
+            {/* Progress bar */}
+            <div>
+              <div className="flex justify-between text-xs text-muted-foreground mb-1.5">
+                <span>Progress</span>
+                <span>60%</span>
+              </div>
+              <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                <div className="h-full w-3/5 bg-gradient-to-r from-purple-500 to-cyan-400 rounded-full" />
+              </div>
+            </div>
+
+            {/* Scores */}
+            <div className="space-y-2 pt-1">
+              {[
+                { label: "Frontend", score: 8.2, color: "text-green-400" },
+                { label: "Backend",  score: 7.1, color: "text-yellow-400" },
+                { label: "Resume",   score: 9.0, color: "text-green-400" },
+              ].map((item) => (
+                <div key={item.label} className="flex justify-between items-center text-xs">
+                  <span className="text-muted-foreground">{item.label}</span>
+                  <span className={`font-semibold ${item.color}`}>{item.score}/10</span>
                 </div>
-              </div>
-
-              {/* Scores */}
-              <div className="space-y-2">
-                {["Frontend", "Backend", "Data"].map((item, i) => (
-                  <div key={i} className="flex justify-between text-sm">
-                    <span>{item}</span>
-                    <span className="text-muted-foreground">
-                      {7 + i}/10
-                    </span>
-                  </div>
-                ))}
-              </div>
+              ))}
             </div>
           </div>
 
+          {/* Social proof */}
+          <p className="text-xs text-muted-foreground/60">
+            Join students already practicing with IntervueX
+          </p>
         </div>
       </div>
     </main>

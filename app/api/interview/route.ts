@@ -40,16 +40,16 @@ export async function POST(req: Request) {
     }
 
     // 💾 Save interview
-    await prisma.interview.create({
-      data: {
-        userId: user.id,
-        type,
-        score,
-        data: data ?? null, // ✅ safe fallback
-      },
-    });
+    const interview = await prisma.interview.create({
+  data: {
+    userId: user.id,
+    type,
+    score,
+    data: data ?? null,
+  },
+});
 
-    return NextResponse.json({ success: true });
+return NextResponse.json({ id: interview.id });
 
   } catch (err) {
     console.error("INTERVIEW SAVE ERROR:", err);

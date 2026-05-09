@@ -8,22 +8,20 @@ datasource db {
 }
 
 model User {
-  id          String      @id @default(cuid())
-  name        String?
-  email       String      @unique
-  password    String
-  createdAt   DateTime    @default(now())
-
-  interviews  Interview[]  
+  id         String      @id @default(cuid())
+  email      String      @unique
+  name       String?
+  createdAt  DateTime    @default(now())
+  password   String
+  interviews Interview[]
 }
 
 model Interview {
   id        String   @id @default(cuid())
   userId    String
-  type      String   
   score     Float
-  data      Json
   createdAt DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id])
+  data      Json
+  type      String
+  user      User     @relation(fields: [userId], references: [id])
 }
